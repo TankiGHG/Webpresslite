@@ -80,6 +80,8 @@ src/components/ui/  shadcn/ui-Komponenten
 src/lib/env.ts      validierte Konfiguration
 src/lib/auth/       better-auth Server, Client, Session-Helfer
 src/lib/tenant/     Host-Parsing, Reserved-List, Subdomain-Validierung
+src/lib/editor/     TipTap-Extensions, serverseitiges Rendering, Sanitizing
+src/lib/posts/      Slugs und Beitrags-Vokabular
 src/lib/mail/       SMTP-Versand und Mail-Vorlagen
 src/lib/db/         Drizzle-Client, Schema, Queries
 src/lib/storage/    S3/MinIO-Client
@@ -127,6 +129,31 @@ Subdomains auf `127.0.0.1` zeigen — `meineseite.lvh.me:3000` erreicht direkt d
 Site. Der Seed legt `demo.lvh.me:3000` an.
 
 Reservierte Subdomains stehen in `src/lib/tenant/reserved.ts`.
+
+## Inhalte
+
+Beiträge und Seiten werden im TipTap-Editor geschrieben. Gespeichert wird das
+JSON-Dokument; das HTML entsteht **serverseitig** daraus und wird gegen eine
+Allow-List sanitized. Der Browser liefert nie HTML.
+
+Ein Beitrag ist `draft`, `scheduled` oder `published`. Öffentlich sichtbar ist
+er erst, wenn er veröffentlicht **und** sein Zeitpunkt erreicht ist.
+
+- Beiträge: `https://<site>/beitrag/<slug>`
+- Seiten: `https://<site>/<slug>`
+
+### Geplante Beiträge
+
+Ein Scheduler muss regelmäßig — sinnvoll ist einmal pro Minute — folgendes
+aufrufen:
+
+```bash
+curl -X POST https://<APP_URL>/api/cron/publish-scheduled \
+  -H "authorization: Bearer $CRON_SECRET"
+```
+
+Der Aufruf ist idempotent; ohne fällige Beiträge passiert nichts. Ohne gesetztes
+`CRON_SECRET` antwortet der Endpunkt mit 503, statt offen zu stehen.
 
 ## Tests
 

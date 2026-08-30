@@ -27,3 +27,101 @@
     -webkit-font-smoothing: antialiased;
   }
 }
+
+/* Rendered post content and the editor surface share one type scale, so the
+   editor shows what the published page will look like. */
+@layer components {
+  .post-content,
+  .prose-editor {
+    line-height: 1.7;
+  }
+
+  .post-content > * + *,
+  .prose-editor > * + * {
+    margin-top: 1rem;
+  }
+
+  .post-content h2,
+  .prose-editor h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-top: 2rem;
+  }
+
+  .post-content h3,
+  .prose-editor h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+  }
+
+  .post-content h4,
+  .prose-editor h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .post-content ul,
+  .prose-editor ul,
+  .post-content ol,
+  .prose-editor ol {
+    padding-left: 1.5rem;
+  }
+
+  .post-content ul,
+  .prose-editor ul {
+    list-style: disc;
+  }
+
+  .post-content ol,
+  .prose-editor ol {
+    list-style: decimal;
+  }
+
+  .post-content blockquote,
+  .prose-editor blockquote {
+    border-left: 3px solid var(--color-border);
+    padding-left: 1rem;
+    color: var(--color-muted-foreground);
+  }
+
+  .post-content pre,
+  .prose-editor pre {
+    background: var(--color-muted);
+    border-radius: var(--radius);
+    padding: 0.875rem 1rem;
+    overflow-x: auto;
+    font-size: 0.875rem;
+  }
+
+  .post-content code,
+  .prose-editor code {
+    font-size: 0.875em;
+  }
+
+  .post-content a,
+  .prose-editor a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .post-content img,
+  .prose-editor img {
+    border-radius: var(--radius);
+  }
+
+  .post-content hr,
+  .prose-editor hr {
+    border-top: 1px solid var(--color-border);
+  }
+
+  /* TipTap placeholder for an empty document. */
+  .prose-editor p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    color: var(--color-muted-foreground);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+}

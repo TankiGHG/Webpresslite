@@ -9,6 +9,8 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import type { JSONContent } from '@/lib/editor/types';
+import { POST_STATUSES, POST_TYPES } from '@/lib/posts/constants';
 import { SITE_PLANS, SITE_ROLES } from '@/lib/sites/roles';
 
 /**
@@ -153,8 +155,50 @@ export const siteMembers = pgTable(
   ],
 );
 
+// --- Content -----------------------------------------------------------------
+
+export const postType = pgEnum('post_type', POST_TYPES);
+export const postStatus = pgEnum('post_status', POST_STATUSES);
+
+export const posts = pgTable(
+  'posts',
+  {
+    id: text('id').primaryKey(),
+    siteId: text('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    authorId: text('author_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'restrict' }),
+    type: postType('type').notNull().default('post'),
+    title: text('title').notNull(),
+    slug: text('slug').notNull(),
+    excerpt: text('excerpt'),
+    contentJson: jsonb('content_json').$type<JSONContent>().notNull(),
+    contentHtml: text('content_html').notNull(),
+    coverMediaId: text('cover_media_id'),
+    status: postStatus('status').notNull().default('draft'),
+    /**
+     * For a published post the moment it went live, for a scheduled one the
+     * moment it is due. One column covers both, so the cron job is a single
+     * query and there is no second timestamp to keep in sync.
+     */
+    publishedAt: timestamp('published_at', { withTimezone: true, mode: 'date' }),
+    seoTitle: text('seo_title'),
+    seoDescription: text('seo_description'),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('posts_site_slug_unique').on(table.siteId, table.slug),
+    index('posts_site_status_published_idx').on(table.siteId, table.status, table.publishedAt),
+    index('posts_author_id_idx').on(table.authorId),
+  ],
+);
+
 export type UserRow = typeof user.$inferSelect;
 export type SessionRow = typeof session.$inferSelect;
 export type SiteRow = typeof sites.$inferSelect;
 export type SiteMemberRow = typeof siteMembers.$inferSelect;
+export type PostRow = typeof posts.$inferSelect;
+export type { PostStatus, PostType } from '@/lib/posts/constants';
 export type { SitePlan, SiteRole } from '@/lib/sites/roles';

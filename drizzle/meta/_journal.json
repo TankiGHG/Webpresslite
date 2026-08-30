@@ -15,6 +15,13 @@
       "when": 1788102598475,
       "tag": "0001_serious_nekra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788115570400,
+      "tag": "0002_wonderful_wolf_cub",
+      "breakpoints": true
     }
   ]
 }

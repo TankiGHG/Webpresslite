@@ -20,6 +20,7 @@ env:
   S3_SECRET_ACCESS_KEY: webpresslite
   S3_FORCE_PATH_STYLE: 'true'
   AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+  CRON_SECRET: ci-cron-secret-ci-cron-secret
 
 jobs:
   verify:

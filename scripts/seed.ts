@@ -16,13 +16,56 @@ const SEED_SITE_NAME = 'Demo Site';
 const SEED_PASSWORD = 'demo-password-123';
 const SEED_NAME = 'Demo Nutzerin';
 
+const SEED_POSTS: { title: string; body: string[]; type: 'post' | 'page'; publish: boolean }[] = [
+  {
+    title: 'Willkommen bei webpresslite',
+    body: [
+      'Diese Site ist mit dem Seed-Skript entstanden.',
+      'Sie zeigt, wie ein veröffentlichter Beitrag im Frontend aussieht.',
+    ],
+    type: 'post',
+    publish: true,
+  },
+  {
+    title: 'Schreiben im Editor',
+    body: ['Der Editor speichert automatisch, während du tippst.'],
+    type: 'post',
+    publish: true,
+  },
+  {
+    title: 'Beiträge planen',
+    body: ['Ein geplanter Beitrag wird vom Cronjob automatisch veröffentlicht.'],
+    type: 'post',
+    publish: true,
+  },
+  {
+    title: 'Noch ein Entwurf',
+    body: ['Dieser Beitrag ist absichtlich unveröffentlicht.'],
+    type: 'post',
+    publish: false,
+  },
+  {
+    title: 'Über diese Site',
+    body: ['Eine statische Seite liegt direkt unter der Subdomain, ohne Präfix.'],
+    type: 'page',
+    publish: true,
+  },
+];
+
+function paragraphs(lines: string[]) {
+  return {
+    type: 'doc',
+    content: lines.map((text) => ({ type: 'paragraph', content: [{ type: 'text', text }] })),
+  };
+}
+
 async function main() {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('Refusing to seed a production database.');
   }
 
   const { getDb } = await import('../src/lib/db/client');
-  const { user } = await import('../src/lib/db/schema');
+  const { sites, user } = await import('../src/lib/db/schema');
   const { eq } = await import('drizzle-orm');
 
   const existing = await getDb().select().from(user).where(eq(user.email, SEED_EMAIL)).limit(1);
@@ -58,7 +101,45 @@ async function main() {
     console.info(`Seed site ${SEED_SUBDOMAIN} already exists.`);
   }
 
-  console.info('Posts and media follow in phases 3 and 5.');
+  const { createPost, listPosts, setPostStatus, updatePost } =
+    await import('../src/lib/db/queries/posts');
+
+  const siteId = (
+    await getDb().select().from(sites).where(eq(sites.subdomain, SEED_SUBDOMAIN)).limit(1)
+  )[0]?.id;
+  if (!siteId) throw new Error('Seed site could not be resolved.');
+
+  const existingPosts = await listPosts(siteId, userId);
+
+  if (existingPosts.length === 0) {
+    for (const [index, entry] of SEED_POSTS.entries()) {
+      const post = await createPost({ siteId, userId, title: entry.title, type: entry.type });
+
+      await updatePost({
+        siteId,
+        postId: post.id,
+        userId,
+        content: paragraphs(entry.body),
+      });
+
+      if (entry.publish) {
+        // Stagger the dates so the archive has something to sort.
+        await setPostStatus(
+          siteId,
+          post.id,
+          userId,
+          'published',
+          new Date(Date.now() - (SEED_POSTS.length - index) * 24 * 60 * 60 * 1000),
+        );
+      }
+    }
+
+    console.info(`Created ${SEED_POSTS.length} seed posts.`);
+  } else {
+    console.info(`Site ${SEED_SUBDOMAIN} already has ${existingPosts.length} entries.`);
+  }
+
+  console.info('Media follows in phase 5.');
 }
 
 main()

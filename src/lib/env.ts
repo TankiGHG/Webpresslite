@@ -34,6 +34,10 @@ const serverSchema = z
 
     AUTH_SECRET: z.string().min(32),
 
+    // Shared secret for the scheduled-publishing endpoint. Without it the
+    // endpoint refuses to run rather than being open.
+    CRON_SECRET: optionalString,
+
     // GitHub OAuth is optional; the provider is only registered when both are set.
     GITHUB_CLIENT_ID: optionalString,
     GITHUB_CLIENT_SECRET: optionalString,

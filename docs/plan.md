@@ -51,14 +51,14 @@ und Cross-Tenant-Zugriff im Test fehlschlägt.
 
 **Fertig wenn:** ein Beitrag geschrieben, gespeichert, geplant und automatisch veröffentlicht wird.
 
-- [ ] Tabelle `posts` (post|page)
-- [ ] CRUD für Beiträge und Seiten
-- [ ] TipTap-Editor mit debounced Autosave
-- [ ] Slug-Generierung, `unique(site_id, slug)`
-- [ ] Entwurf / Planung / Veröffentlichung
-- [ ] Vorschau-Modus
-- [ ] Cronjob für geplante Beiträge
-- [ ] Serverseitiges Sanitizing des Editor-HTML
+- [x] Tabelle `posts` (post|page), Migration `0002_wonderful_wolf_cub.sql`
+- [x] CRUD für Beiträge und Seiten
+- [x] TipTap-Editor (v2) mit debounced Autosave
+- [x] Slug-Generierung, `unique(site_id, slug)`
+- [x] Entwurf / Planung / Veröffentlichung
+- [x] Vorschau-Modus
+- [x] Cronjob für geplante Beiträge (`POST /api/cron/publish-scheduled`)
+- [x] Serverseitiges Sanitizing des Editor-HTML
 
 ## Phase 4 — Öffentliches Rendering & Themes
 

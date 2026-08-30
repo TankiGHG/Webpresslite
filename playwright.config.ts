@@ -1,4 +1,10 @@
+import { config as loadEnv } from 'dotenv';
 import { defineConfig, devices } from '@playwright/test';
+
+// The suite needs ROOT_DOMAIN to build tenant hosts and CRON_SECRET to drive
+// the scheduler; Playwright does not read the env files on its own.
+loadEnv({ path: '.env.local', quiet: true });
+loadEnv({ path: '.env', quiet: true });
 
 const baseURL = process.env.E2E_BASE_URL ?? 'http://lvh.me:3000';
 
@@ -14,11 +20,11 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        // `next start` refuses to serve an `output: 'standalone'` build, so the
-        // suite drives the dev server unless a running instance is pointed at.
-        command: 'pnpm dev',
+        // Runs the same standalone server as production. The dev server would
+        // also work, but its per-route compilation makes the suite flaky.
+        command: 'pnpm build && pnpm start',
         url: baseURL,
         reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
+        timeout: 240_000,
       },
 });

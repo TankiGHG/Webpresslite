@@ -33,7 +33,8 @@ pnpm lint             # ESLint
 pnpm format           # Prettier schreiben  (format:check nur prüfen)
 pnpm test             # Vitest
 pnpm test:e2e         # Playwright
-pnpm build            # Produktions-Build
+pnpm build            # Produktions-Build (standalone, kopiert Assets)
+pnpm start            # Standalone-Server aus dem Build
 pnpm db:generate      # Migration aus dem Schema erzeugen
 pnpm db:migrate       # Migrationen anwenden
 pnpm db:seed          # Entwicklungsdaten
@@ -60,6 +61,8 @@ Vor jedem Abschluss einer Phase muss durchlaufen:
   irgendwo sonst (Ausnahme: `next.config.ts`, `drizzle.config.ts`, Skripte).
 - **Caching.** Öffentliche Site-Seiten statisch mit `revalidateTag`,
   Invalidierung beim Publish/Update eines Beitrags.
+- **Editor-Inhalte.** `content_json` ist die Quelle der Wahrheit, `content_html`
+  ein serverseitig gerenderter und sanitizeter Cache. Der Client liefert nie HTML.
 
 ## Konventionen
 

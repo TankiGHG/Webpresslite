@@ -1,11 +1,12 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { requireSession } from '@/lib/auth/session';
 import { fieldErrors } from '@/lib/auth/validation';
 import { createPost, deletePost, setPostStatus, updatePost } from '@/lib/db/queries/posts';
+import { siteContentTag } from '@/lib/db/queries/public-sites';
 import { SiteAccessError } from '@/lib/db/queries/sites';
 import type { JSONContent } from '@/lib/editor/types';
 import { POST_TYPES } from '@/lib/posts/constants';
@@ -82,6 +83,8 @@ export async function savePostAction(input: {
     return { ok: false, error: 'Speichern fehlgeschlagen.' };
   }
 
+  revalidateTag(siteContentTag(input.siteId));
+
   return { ok: true, savedAt: new Date().toISOString() };
 }
 
@@ -131,6 +134,7 @@ export async function savePostSettingsAction(
     throw error;
   }
 
+  revalidateTag(siteContentTag(parsed.data.siteId));
   revalidatePath(`/sites/${parsed.data.siteId}/posts/${parsed.data.postId}`);
   return {};
 }
@@ -179,6 +183,7 @@ export async function changePostStatusAction(
     throw error;
   }
 
+  revalidateTag(siteContentTag(siteId));
   revalidatePath(`/sites/${siteId}/posts/${postId}`);
   revalidatePath(`/sites/${siteId}/posts`);
   return {};
@@ -206,6 +211,7 @@ export async function deletePostAction(
     throw error;
   }
 
+  revalidateTag(siteContentTag(siteId));
   revalidatePath(`/sites/${siteId}/posts`);
   redirect(`/sites/${siteId}/posts`);
 }

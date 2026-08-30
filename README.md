@@ -82,6 +82,7 @@ src/lib/auth/       better-auth Server, Client, Session-Helfer
 src/lib/tenant/     Host-Parsing, Reserved-List, Subdomain-Validierung
 src/lib/editor/     TipTap-Extensions, serverseitiges Rendering, Sanitizing
 src/lib/posts/      Slugs und Beitrags-Vokabular
+src/lib/themes/     Theme-Definitionen und Anpassungen
 src/lib/mail/       SMTP-Versand und Mail-Vorlagen
 src/lib/db/         Drizzle-Client, Schema, Queries
 src/lib/storage/    S3/MinIO-Client
@@ -154,6 +155,39 @@ curl -X POST https://<APP_URL>/api/cron/publish-scheduled \
 
 Der Aufruf ist idempotent; ohne fällige Beiträge passiert nichts. Ohne gesetztes
 `CRON_SECRET` antwortet der Endpunkt mit 503, statt offen zu stehen.
+
+## Themes
+
+Jede Site nutzt eines von drei Themes — **Minimal**, **Journal**, **Kontrast** —
+und kann Akzentfarbe, Hintergrund, Textfarbe, Schriften und ein Logo überschreiben.
+Angepasst wird das unter `Dashboard → Site → Design`.
+
+Ein Theme ist ein Satz `--site-*`-CSS-Variablen. Wer im Site-Bereich eine Farbe
+fest notiert statt eine Variable zu verwenden, bricht die Umschaltung.
+
+## SEO und Feeds
+
+Pro Site erreichbar:
+
+| Pfad                 | Inhalt                                    |
+| -------------------- | ----------------------------------------- |
+| `/feed.xml`          | RSS 2.0 aller veröffentlichten Beiträge   |
+| `/sitemap.xml`       | Alle öffentlichen URLs                    |
+| `/robots.txt`        | Verweist auf die Sitemap                  |
+| `/archiv`            | Alle Beiträge nach Jahren                 |
+| `/seite/2` …         | Ältere Beiträge (10 pro Seite, `noindex`) |
+| `/og/beitrag/<slug>` | OG-Bild, 1200 × 630                       |
+
+### Lighthouse
+
+```bash
+pnpm build && pnpm start          # in einem Terminal
+CHROME_PATH=/pfad/zu/chrome pnpm lighthouse
+```
+
+Geprüft werden Startseite, Beitrag und Archiv gegen den Schwellwert 95 in
+Performance, Accessibility und SEO. `best-practices` wird nur berichtet: die
+Kategorie scheitert lokal an `is-on-https`, weil ohne TLS gemessen wird.
 
 ## Tests
 

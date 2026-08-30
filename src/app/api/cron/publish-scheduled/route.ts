@@ -1,6 +1,8 @@
 import { timingSafeEqual } from 'node:crypto';
+import { revalidateTag } from 'next/cache';
 import { NextResponse, type NextRequest } from 'next/server';
 import { publishDuePosts } from '@/lib/db/queries/posts';
+import { siteContentTag } from '@/lib/db/queries/public-sites';
 import { getEnv } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +35,12 @@ export async function POST(request: NextRequest) {
   }
 
   const published = await publishDuePosts();
+
+  // Without this the freshly published post would sit behind a cached "not
+  // found" until the cache entry expired on its own.
+  for (const siteId of new Set(published.map((post) => post.siteId))) {
+    revalidateTag(siteContentTag(siteId));
+  }
 
   return NextResponse.json({
     published: published.length,

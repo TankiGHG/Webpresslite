@@ -1,7 +1,8 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getPublicSite, listPublishedPosts } from '@/lib/db/queries/public-sites';
+import { Pagination } from '@/components/site/pagination';
+import { PostList } from '@/components/site/post-list';
+import { getPublicSite, getPublishedPage } from '@/lib/db/queries/public-sites';
 
 export async function generateMetadata({
   params,
@@ -11,7 +12,13 @@ export async function generateMetadata({
   const { siteId } = await params;
   const site = await getPublicSite(siteId);
 
-  return { title: site?.name ?? 'Site' };
+  if (!site) return { title: 'Nicht gefunden' };
+
+  return {
+    title: site.name,
+    description: `Beiträge von ${site.name}`,
+    alternates: { types: { 'application/rss+xml': '/feed.xml' } },
+  };
 }
 
 export default async function SiteHomePage({ params }: { params: Promise<{ siteId: string }> }) {
@@ -20,38 +27,20 @@ export default async function SiteHomePage({ params }: { params: Promise<{ siteI
 
   if (!site) notFound();
 
-  const posts = await listPublishedPosts(siteId);
+  const { posts, page, pageCount } = await getPublishedPage(siteId, 1);
 
   return (
-    <div className="space-y-8">
-      <p className="text-xs text-[var(--color-muted-foreground)]" data-testid="site-subdomain">
-        {site.subdomain}
-      </p>
-
+    <div>
       {posts.length === 0 ? (
-        <p className="text-sm text-[var(--color-muted-foreground)]" data-testid="no-published">
+        <p className="post-meta" data-testid="no-published">
           Hier ist noch nichts veröffentlicht.
         </p>
       ) : (
-        <ul className="space-y-6" data-testid="published-list">
-          {posts.map((post) => (
-            <li key={post.id} className="space-y-1">
-              <h2 className="text-xl font-semibold tracking-tight">
-                <Link href={`/beitrag/${post.slug}`} className="hover:underline">
-                  {post.title}
-                </Link>
-              </h2>
-              {post.publishedAt ? (
-                <p className="text-xs text-[var(--color-muted-foreground)]">
-                  <time dateTime={post.publishedAt.toISOString()}>
-                    {post.publishedAt.toLocaleDateString('de-DE')}
-                  </time>
-                </p>
-              ) : null}
-              {post.excerpt ? <p className="text-sm">{post.excerpt}</p> : null}
-            </li>
-          ))}
-        </ul>
+        <>
+          <h1 className="sr-only">Beiträge von {site.name}</h1>
+          <PostList posts={posts} />
+          <Pagination page={page} pageCount={pageCount} />
+        </>
       )}
     </div>
   );

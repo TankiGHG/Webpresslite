@@ -50,6 +50,18 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ sit
         </p>
       </section>
 
+      <section className="rounded-lg border p-6">
+        <h2 className="font-medium">Design</h2>
+        <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+          Theme, Farben, Schrift und Logo.
+        </p>
+        <p className="mt-3 text-sm">
+          <Link href={`/sites/${site.id}/design`} className="underline underline-offset-4">
+            Design anpassen
+          </Link>
+        </p>
+      </section>
+
       {site.role === 'owner' ? (
         <section className="space-y-3">
           <h2 className="font-medium">Gefahrenzone</h2>

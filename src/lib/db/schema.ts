@@ -10,8 +10,10 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import type { JSONContent } from '@/lib/editor/types';
+import type { ThemeSettings } from '@/lib/themes/settings';
 import { POST_STATUSES, POST_TYPES } from '@/lib/posts/constants';
 import { SITE_PLANS, SITE_ROLES } from '@/lib/sites/roles';
+import { DEFAULT_THEME } from '@/lib/themes/definitions';
 
 /**
  * Drizzle schema. Tables are added phase by phase: auth tables here in phase 1,
@@ -109,12 +111,6 @@ export const verification = pgTable(
 export const siteRole = pgEnum('site_role', SITE_ROLES);
 export const sitePlan = pgEnum('site_plan', SITE_PLANS);
 
-export interface ThemeSettings {
-  colors?: Record<string, string>;
-  fontFamily?: string;
-  logoMediaId?: string;
-}
-
 export const sites = pgTable(
   'sites',
   {
@@ -125,7 +121,7 @@ export const sites = pgTable(
     ownerId: text('owner_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
-    theme: text('theme').notNull().default('minimal'),
+    theme: text('theme').notNull().default(DEFAULT_THEME),
     themeSettings: jsonb('theme_settings').$type<ThemeSettings>().notNull().default({}),
     plan: sitePlan('plan').notNull().default('free'),
     ...timestamps,

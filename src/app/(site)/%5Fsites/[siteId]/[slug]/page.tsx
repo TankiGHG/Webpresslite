@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { RenderedContent } from '@/components/editor/rendered-content';
 import { getPublicSite, getPublishedPost } from '@/lib/db/queries/public-sites';
+import { getEnv } from '@/lib/env';
+import { siteUrl } from '@/lib/tenant/host';
 
 type Params = Promise<{ siteId: string; slug: string }>;
 
@@ -12,11 +14,17 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     getPublishedPost(siteId, slug, { type: 'page' }),
   ]);
 
-  if (!page) return { title: 'Nicht gefunden' };
+  if (!site || !page) return { title: 'Nicht gefunden', robots: { index: false } };
+
+  const url = `${siteUrl(site.subdomain, getEnv().ROOT_DOMAIN)}/${page.slug}`;
+  const title = page.seoTitle ?? page.title;
+  const description = page.seoDescription ?? page.excerpt ?? undefined;
 
   return {
-    title: page.seoTitle ?? `${page.title} — ${site?.name ?? ''}`.trim(),
-    description: page.seoDescription ?? page.excerpt ?? undefined,
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { type: 'website', title, description, url, siteName: site.name, locale: 'de_DE' },
   };
 }
 
@@ -28,10 +36,10 @@ export default async function PublicPage({ params }: { params: Params }) {
   if (!page) notFound();
 
   return (
-    <article className="space-y-4">
-      <h1 className="text-3xl font-semibold tracking-tight" data-testid="page-title">
-        {page.title}
-      </h1>
+    <article>
+      <header className="post-header">
+        <h1 data-testid="page-title">{page.title}</h1>
+      </header>
       <RenderedContent html={page.contentHtml} />
     </article>
   );

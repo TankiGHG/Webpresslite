@@ -64,12 +64,13 @@ und Cross-Tenant-Zugriff im Test fehlschlägt.
 
 **Fertig wenn:** Lighthouse ≥ 95 in Performance/SEO/Accessibility auf der Beitragsseite.
 
-- [ ] Startseite mit Pagination, Einzelbeitrag, statische Seiten, Archiv, 404
-- [ ] 3 Themes über CSS-Variablen
-- [ ] Theme-Anpassung im Dashboard (Farben, Schrift, Logo)
-- [ ] RSS-Feed, `sitemap.xml`, `robots.txt`
-- [ ] OG-Images, SEO-Meta-Tags
-- [ ] Caching mit `revalidateTag`
+- [x] Startseite mit Pagination, Einzelbeitrag, statische Seiten, Archiv, 404
+- [x] 3 Themes über CSS-Variablen (Minimal, Journal, Kontrast)
+- [x] Theme-Anpassung im Dashboard (Farben, Schrift, Logo)
+- [x] RSS-Feed, `sitemap.xml`, `robots.txt`
+- [x] OG-Images, SEO-Meta-Tags, JSON-LD
+- [x] Caching mit `revalidateTag`, Invalidierung beim Publish und durch den Cronjob
+- [x] Lighthouse ≥ 95 (`pnpm lighthouse`): Performance 99, Accessibility 100, SEO 100
 
 ## Phase 5 — Medien
 

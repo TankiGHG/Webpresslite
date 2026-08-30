@@ -143,6 +143,28 @@ export async function createSite(input: CreateSiteInput): Promise<SiteRow> {
   }
 }
 
+export interface UpdateSiteThemeInput {
+  siteId: string;
+  userId: string;
+  theme: string;
+  themeSettings: Record<string, unknown>;
+}
+
+/** Changing how a site looks is a site setting, so it needs admin rights. */
+export async function updateSiteTheme(input: UpdateSiteThemeInput): Promise<SiteRow> {
+  await requireSiteAccess(input.siteId, input.userId, 'admin');
+
+  const updated = await getDb()
+    .update(sites)
+    .set({ theme: input.theme, themeSettings: input.themeSettings })
+    .where(eq(sites.id, input.siteId))
+    .returning();
+
+  const site = updated[0];
+  if (!site) throw new SiteAccessError();
+  return site;
+}
+
 /** Deletes a site. Only the owner may do this; members cascade away with it. */
 export async function deleteSite(siteId: string, userId: string): Promise<void> {
   await requireSiteAccess(siteId, userId, 'owner');

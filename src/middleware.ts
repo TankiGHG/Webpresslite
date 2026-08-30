@@ -8,6 +8,8 @@ export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
 
+const ROOT_ASSETS = new Set(['/icon.svg', '/favicon.ico', '/apple-icon.png']);
+
 export async function middleware(request: NextRequest) {
   const rootDomain = process.env.ROOT_DOMAIN;
   if (!rootDomain) {
@@ -22,6 +24,11 @@ export async function middleware(request: NextRequest) {
   // Auth and health stay on the platform surface even under a tenant host.
   const { pathname } = request.nextUrl;
   if (pathname.startsWith('/api/')) return NextResponse.next();
+
+  // Icons live at the application root, not per tenant. `/feed.xml`,
+  // `/sitemap.xml` and `/robots.txt` deliberately do *not* belong here — those
+  // are per-site and must be rewritten.
+  if (ROOT_ASSETS.has(pathname)) return NextResponse.next();
 
   const siteId = await resolveTenant(tenant);
   if (!siteId) {

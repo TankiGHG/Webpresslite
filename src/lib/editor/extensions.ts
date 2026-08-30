@@ -19,5 +19,20 @@ export const editorExtensions: Extensions = [
     protocols: ['http', 'https', 'mailto'],
     HTMLAttributes: { rel: 'noopener noreferrer nofollow' },
   }),
-  Image.configure({ inline: false, allowBase64: false }),
+  /**
+   * Images carry their `srcset` and `sizes` as attributes so the published page
+   * serves the variant that fits the viewport. The attributes are filled from
+   * the media library when the image is inserted.
+   */
+  Image.extend({
+    addAttributes() {
+      return {
+        ...this.parent?.(),
+        srcset: { default: null },
+        sizes: { default: null },
+        width: { default: null },
+        height: { default: null },
+      };
+    },
+  }).configure({ inline: false, allowBase64: false }),
 ];

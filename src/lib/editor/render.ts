@@ -31,15 +31,19 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   ],
   allowedAttributes: {
     a: ['href', 'target', 'rel'],
-    img: ['src', 'alt', 'title', 'width', 'height'],
+    img: ['src', 'srcset', 'sizes', 'alt', 'title', 'width', 'height', 'loading', 'decoding'],
     pre: ['class'],
     code: ['class'],
   },
   allowedSchemes: ['http', 'https', 'mailto'],
   allowedSchemesByTag: { img: ['http', 'https'] },
+  // `srcset` carries URLs too, and sanitize-html does not check it on its own.
+  allowedSchemesAppliedToAttributes: ['href', 'src', 'srcset'],
   // Never let a document opt out of the rel we put on links.
   transformTags: {
     a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer nofollow' }, true),
+    // Images below the fold should never block the first paint.
+    img: sanitizeHtml.simpleTransform('img', { loading: 'lazy', decoding: 'async' }, true),
   },
   disallowedTagsMode: 'discard',
 };

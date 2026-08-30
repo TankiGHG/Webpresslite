@@ -79,6 +79,7 @@ Vor jedem Abschluss einer Phase muss durchlaufen:
 - Architekturentscheidungen mit Tragweite als kurzes ADR in `docs/adr/`.
 - `.env.example` bei jeder neuen ENV-Variable mitpflegen.
 - Editor-HTML serverseitig sanitizen; Uploads auf Größe und MIME prüfen.
+- Storage-Keys immer serverseitig bilden, nie aus einem Dateinamen ableiten.
 - Nach drei erfolglosen Fix-Versuchen: stoppen, Problem beschreiben, fragen.
 
 ## Don't

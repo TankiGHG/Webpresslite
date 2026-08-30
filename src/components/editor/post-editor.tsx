@@ -40,7 +40,7 @@ export function PostEditor({
         siteId,
         postId,
         title: draft.title,
-        content: draft.content,
+        contentJson: JSON.stringify(draft.content),
       });
       if (!result.ok) throw new Error(result.error);
     },
@@ -86,6 +86,7 @@ export function PostEditor({
       </div>
 
       <RichTextEditor
+        siteId={siteId}
         initialContent={initialContent}
         onChange={(next) => {
           setContent(next);

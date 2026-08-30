@@ -27,6 +27,9 @@ const serverSchema = z
     S3_BUCKET: z.string().min(1),
     S3_ACCESS_KEY_ID: z.string().min(1),
     S3_SECRET_ACCESS_KEY: z.string().min(1),
+    // Public base URL media is served from. Falls back to the endpoint plus
+    // bucket, which is how MinIO serves a public bucket in path style.
+    NEXT_PUBLIC_MEDIA_URL: optionalString,
     S3_FORCE_PATH_STYLE: z
       .string()
       .optional()
@@ -75,6 +78,11 @@ export function getEnv(): ServerEnv {
 
   cached = parsed.data;
   return cached;
+}
+
+/** Base URL under which stored objects are publicly readable. */
+export function mediaBaseUrl(env: ServerEnv = getEnv()): string {
+  return env.NEXT_PUBLIC_MEDIA_URL ?? `${env.S3_ENDPOINT.replace(/\/$/, '')}/${env.S3_BUCKET}`;
 }
 
 export function isGithubOAuthEnabled(env: ServerEnv = getEnv()): boolean {

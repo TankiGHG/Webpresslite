@@ -83,6 +83,7 @@ src/lib/tenant/     Host-Parsing, Reserved-List, Subdomain-Validierung
 src/lib/editor/     TipTap-Extensions, serverseitiges Rendering, Sanitizing
 src/lib/posts/      Slugs und Beitrags-Vokabular
 src/lib/themes/     Theme-Definitionen und Anpassungen
+src/lib/media/      Upload-Regeln, Storage-Keys, sharp-Varianten
 src/lib/mail/       SMTP-Versand und Mail-Vorlagen
 src/lib/db/         Drizzle-Client, Schema, Queries
 src/lib/storage/    S3/MinIO-Client
@@ -188,6 +189,25 @@ CHROME_PATH=/pfad/zu/chrome pnpm lighthouse
 Geprüft werden Startseite, Beitrag und Archiv gegen den Schwellwert 95 in
 Performance, Accessibility und SEO. `best-practices` wird nur berichtet: die
 Kategorie scheitert lokal an `is-on-https`, weil ohne TLS gemessen wird.
+
+## Medien
+
+Bilder werden unter `Dashboard → Site → Medien` verwaltet und im Editor über
+`Bild` aus der Bibliothek eingefügt.
+
+Der Upload läuft in drei Schritten: der Server signiert eine PUT-URL, der
+Browser lädt die Datei **direkt** in den Objektspeicher, danach erzeugt der
+Server die Varianten. Die Anwendung sieht die Datei nie.
+
+- Erlaubt: JPEG, PNG, WebP, AVIF, GIF bis 10 MB
+- Varianten: `thumb` (320), `medium` (800), `full` (1600), durchgehend WebP
+- Hochskaliert wird nie; der `srcset` nennt die tatsächliche Breite
+- Rate Limit: 20 Uploads pro Minute und Nutzer
+
+**Wichtig für den Betrieb:** Weil der Browser direkt in den Speicher schreibt,
+braucht der Bucket eine CORS-Konfiguration — sonst scheitert jeder Upload am
+Preflight. `docker-compose.dev.yml` setzt dafür `MINIO_API_CORS_ALLOW_ORIGIN`.
+In Produktion gehören dort die echten Origins hinein, nicht `*`.
 
 ## Tests
 

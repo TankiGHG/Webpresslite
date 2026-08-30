@@ -139,7 +139,68 @@ async function main() {
     console.info(`Site ${SEED_SUBDOMAIN} already has ${existingPosts.length} entries.`);
   }
 
-  console.info('Media follows in phase 5.');
+  await seedMedia(siteId, userId);
+}
+
+/**
+ * Three generated images, so the media library is not empty on a fresh
+ * install. They are drawn with `sharp` rather than committed as binaries.
+ */
+async function seedMedia(siteId: string, userId: string) {
+  const { getDb } = await import('../src/lib/db/client');
+  const { media } = await import('../src/lib/db/schema');
+  const { eq } = await import('drizzle-orm');
+
+  const existing = await getDb()
+    .select({ id: media.id })
+    .from(media)
+    .where(eq(media.siteId, siteId));
+  if (existing.length > 0) {
+    console.info(`Site already has ${existing.length} media entries.`);
+    return;
+  }
+
+  const sharp = (await import('sharp')).default;
+  const { startUpload, finishUpload, updateAltText } = await import('../src/lib/db/queries/media');
+  const { putObject } = await import('../src/lib/storage/objects');
+  const { originalKey } = await import('../src/lib/media/keys');
+
+  const images = [
+    { name: 'sonnenaufgang.jpg', alt: 'Abstrakter Sonnenaufgang in Orange', color: '#e8891f' },
+    { name: 'meer.jpg', alt: 'Abstrakte Meeresfläche in Blau', color: '#1f6ee8' },
+    { name: 'wald.jpg', alt: 'Abstrakte Waldfläche in Grün', color: '#2e8b4f' },
+  ];
+
+  for (const image of images) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800">
+      <rect width="1200" height="800" fill="${image.color}"/>
+      <circle cx="380" cy="300" r="200" fill="#ffffff" opacity="0.25"/>
+      <rect x="700" y="420" width="380" height="260" fill="#000000" opacity="0.2"/>
+    </svg>`;
+
+    const bytes = await sharp(Buffer.from(svg)).jpeg({ quality: 88 }).toBuffer();
+
+    // The seed writes the original directly instead of going through a
+    // presigned URL, then runs the same processing the app runs.
+    const ticket = await startUpload({
+      siteId,
+      userId,
+      fileName: image.name,
+      mimeType: 'image/jpeg',
+      size: bytes.byteLength,
+    });
+
+    await putObject({
+      key: originalKey(siteId, ticket.mediaId, 'image/jpeg'),
+      body: bytes,
+      contentType: 'image/jpeg',
+    });
+
+    await finishUpload({ siteId, userId, mediaId: ticket.mediaId });
+    await updateAltText({ siteId, userId, mediaId: ticket.mediaId, alt: image.alt });
+  }
+
+  console.info(`Created ${images.length} seed images.`);
 }
 
 main()

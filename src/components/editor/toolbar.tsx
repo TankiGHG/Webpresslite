@@ -61,7 +61,13 @@ const BUTTONS: ToolbarButton[] = [
   },
 ];
 
-export function EditorToolbar({ editor }: { editor: Editor }) {
+export function EditorToolbar({
+  editor,
+  onInsertImage,
+}: {
+  editor: Editor;
+  onInsertImage?: () => void;
+}) {
   return (
     <div className="flex flex-wrap gap-1 border-b p-2" role="toolbar" aria-label="Formatierung">
       {BUTTONS.map((button) => {
@@ -85,6 +91,19 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
           </button>
         );
       })}
+
+      {onInsertImage ? (
+        <button
+          type="button"
+          title="Bild einfügen"
+          aria-label="Bild einfügen"
+          data-testid="insert-image"
+          onClick={onInsertImage}
+          className="h-8 rounded px-2 text-sm font-medium transition-colors hover:bg-[var(--color-muted)]"
+        >
+          Bild
+        </button>
+      ) : null}
 
       <button
         type="button"

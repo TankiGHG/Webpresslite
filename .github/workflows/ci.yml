@@ -63,6 +63,24 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+
+      # Uploads go from the browser straight to the object store, so the e2e
+      # run needs a real one. CORS has to be open or every upload preflight
+      # fails before a single byte is transferred.
+      minio:
+        image: bitnami/minio:latest
+        env:
+          MINIO_ROOT_USER: webpresslite
+          MINIO_ROOT_PASSWORD: webpresslite
+          MINIO_DEFAULT_BUCKETS: webpresslite-media:download
+          MINIO_API_CORS_ALLOW_ORIGIN: '*'
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
 
@@ -78,6 +96,15 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
 
       - run: pnpm db:migrate
+
+      # The media suite uploads this image.
+      - name: Testbild erzeugen
+        run: |
+          node -e "
+          const sharp = require('sharp');
+          const svg = '<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1400\" height=\"900\"><rect width=\"1400\" height=\"900\" fill=\"#123a5f\"/><circle cx=\"450\" cy=\"420\" r=\"260\" fill=\"#e8b931\"/></svg>';
+          sharp(Buffer.from(svg)).jpeg({ quality: 90 }).toFile('/tmp/testbild.jpg');
+          "
 
       # Playwright starts the dev server itself and drives it via lvh.me:3000,
       # which resolves to 127.0.0.1 and matches APP_URL — Better Auth rejects

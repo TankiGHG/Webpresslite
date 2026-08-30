@@ -1,4 +1,4 @@
-import { HeadBucketCommand } from '@aws-sdk/client-s3';
+import { ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getSql } from '@/lib/db/client';
 import { getEnv } from '@/lib/env';
 import { getStorageClient } from '@/lib/storage/client';
@@ -42,9 +42,12 @@ export async function checkDatabase(): Promise<CheckResult> {
 }
 
 export async function checkStorage(): Promise<CheckResult> {
+  // Listing one key proves credentials, bucket and read access in one call.
+  // `HeadBucket` would only prove the bucket exists, and some S3
+  // implementations answer it inconsistently.
   return timed(async () => {
     const env = getEnv();
-    await getStorageClient().send(new HeadBucketCommand({ Bucket: env.S3_BUCKET }));
+    await getStorageClient().send(new ListObjectsV2Command({ Bucket: env.S3_BUCKET, MaxKeys: 1 }));
   });
 }
 

@@ -63,12 +63,24 @@ export async function savePostAction(input: {
   siteId: string;
   postId: string;
   title: string;
-  content: JSONContent;
+  /**
+   * The document travels as JSON text, not as a structured argument. React
+   * hands objects that crossed the server/client boundary back as temporary
+   * references, and reading one on the server throws; a string is unambiguous.
+   */
+  contentJson: string;
 }): Promise<{ ok: true; savedAt: string } | { ok: false; error: string }> {
   const { user } = await requireSession('/dashboard');
 
   const title = input.title.trim();
   if (!title) return { ok: false, error: 'Der Titel darf nicht leer sein.' };
+
+  let content: JSONContent;
+  try {
+    content = JSON.parse(input.contentJson) as JSONContent;
+  } catch {
+    return { ok: false, error: 'Der Inhalt konnte nicht gelesen werden.' };
+  }
 
   try {
     await updatePost({
@@ -76,10 +88,12 @@ export async function savePostAction(input: {
       postId: input.postId,
       userId: user.id,
       title,
-      content: input.content,
+      content,
     });
   } catch (error) {
     if (error instanceof SiteAccessError) return { ok: false, error: 'Kein Zugriff.' };
+    // The user gets a short message; the cause belongs in the server log.
+    console.error('[savePostAction] failed', error);
     return { ok: false, error: 'Speichern fehlgeschlagen.' };
   }
 

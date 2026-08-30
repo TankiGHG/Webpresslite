@@ -77,13 +77,13 @@ und Cross-Tenant-Zugriff im Test fehlschlägt.
 **Fertig wenn:** ein Bild aus dem Editor hochgeladen, eingebettet und im Frontend
 responsiv ausgeliefert wird.
 
-- [ ] Tabelle `media`
-- [ ] Upload nach MinIO über presigned URLs
-- [ ] Varianten via `sharp` (thumb/medium/full, WebP)
-- [ ] Medienbibliothek mit Auswahl-Dialog im Editor
-- [ ] Alt-Texte
-- [ ] Löschen inkl. Storage-Aufräumen
-- [ ] Größen- und MIME-Prüfung, Rate Limit
+- [x] Tabelle `media` (Migration `0003_lonely_malice.sql`)
+- [x] Upload nach MinIO über presigned URLs
+- [x] Varianten via `sharp` (thumb/medium/full, WebP)
+- [x] Medienbibliothek mit Auswahl-Dialog im Editor
+- [x] Alt-Texte
+- [x] Löschen inkl. Storage-Aufräumen
+- [x] Größen- und MIME-Prüfung, Rate Limit (20 Uploads pro Minute und Nutzer)
 
 ## Phase 6 — Taxonomien, Suche, Kommentare
 

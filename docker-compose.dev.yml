@@ -25,6 +25,10 @@ services:
     environment:
       MINIO_ROOT_USER: webpresslite
       MINIO_ROOT_PASSWORD: webpresslite
+      # Uploads go straight from the browser to MinIO via a presigned URL.
+      # Without CORS the preflight is rejected and every upload fails. In
+      # production this must list the real site origins instead of "*".
+      MINIO_API_CORS_ALLOW_ORIGIN: 'http://lvh.me:3000,http://*.lvh.me:3000'
     ports:
       - '127.0.0.1:9000:9000'
       - '127.0.0.1:9001:9001'

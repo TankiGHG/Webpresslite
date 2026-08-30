@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -151,6 +152,35 @@ export const siteMembers = pgTable(
   ],
 );
 
+// --- Media -------------------------------------------------------------------
+
+export const media = pgTable(
+  'media',
+  {
+    id: text('id').primaryKey(),
+    siteId: text('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    uploadedBy: text('uploaded_by')
+      .notNull()
+      .references(() => user.id, { onDelete: 'restrict' }),
+    key: text('key').notNull(),
+    mime: text('mime').notNull(),
+    fileName: text('file_name').notNull(),
+    width: integer('width'),
+    height: integer('height'),
+    size: integer('size').notNull().default(0),
+    alt: text('alt'),
+    /** Set once the variants exist; until then the upload is incomplete. */
+    processedAt: timestamp('processed_at', { withTimezone: true, mode: 'date' }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('media_key_unique').on(table.key),
+    index('media_site_created_idx').on(table.siteId, table.createdAt),
+  ],
+);
+
 // --- Content -----------------------------------------------------------------
 
 export const postType = pgEnum('post_type', POST_TYPES);
@@ -172,7 +202,7 @@ export const posts = pgTable(
     excerpt: text('excerpt'),
     contentJson: jsonb('content_json').$type<JSONContent>().notNull(),
     contentHtml: text('content_html').notNull(),
-    coverMediaId: text('cover_media_id'),
+    coverMediaId: text('cover_media_id').references(() => media.id, { onDelete: 'set null' }),
     status: postStatus('status').notNull().default('draft'),
     /**
      * For a published post the moment it went live, for a scheduled one the
@@ -196,5 +226,6 @@ export type SessionRow = typeof session.$inferSelect;
 export type SiteRow = typeof sites.$inferSelect;
 export type SiteMemberRow = typeof siteMembers.$inferSelect;
 export type PostRow = typeof posts.$inferSelect;
+export type MediaRow = typeof media.$inferSelect;
 export type { PostStatus, PostType } from '@/lib/posts/constants';
 export type { SitePlan, SiteRole } from '@/lib/sites/roles';

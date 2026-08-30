@@ -51,6 +51,18 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ sit
       </section>
 
       <section className="rounded-lg border p-6">
+        <h2 className="font-medium">Medien</h2>
+        <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+          Bilder hochladen, Alt-Texte pflegen, aufräumen.
+        </p>
+        <p className="mt-3 text-sm">
+          <Link href={`/sites/${site.id}/medien`} className="underline underline-offset-4">
+            Medien verwalten
+          </Link>
+        </p>
+      </section>
+
+      <section className="rounded-lg border p-6">
         <h2 className="font-medium">Design</h2>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
           Theme, Farben, Schrift und Logo.

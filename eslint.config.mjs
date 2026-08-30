@@ -41,8 +41,15 @@ const config = [
     },
   },
   {
-    // The data-access layer and the infrastructure health probe may touch Drizzle directly.
-    files: ['src/lib/db/**/*.ts', 'src/lib/health.ts', 'scripts/**/*.ts', 'drizzle.config.ts'],
+    // Exempt: the data-access layer itself, the infrastructure health probe and
+    // the Better Auth setup, which hands the adapter the Drizzle instance.
+    files: [
+      'src/lib/db/**/*.ts',
+      'src/lib/health.ts',
+      'src/lib/auth/server.ts',
+      'scripts/**/*.ts',
+      'drizzle.config.ts',
+    ],
     rules: { 'no-restricted-imports': 'off' },
   },
 ];

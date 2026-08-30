@@ -25,13 +25,14 @@ Statusbericht und einer Freigabe, bevor die nächste beginnt.
 
 **Fertig wenn:** E2E-Test läuft Registrierung → Login → geschützte Seite → Logout durch.
 
-- [ ] better-auth einrichten, Auth-Tabellen migrieren
-- [ ] Registrierung, Login, Logout
-- [ ] Passwort-Reset per Mail (SMTP)
-- [ ] Profilseite
-- [ ] Geschützte Routen
-- [ ] Rate Limit auf Auth-Endpunkte
-- [ ] E2E-Test des vollen Pfads
+- [x] better-auth einrichten, Auth-Tabellen migriert (`0000_gifted_wither.sql`)
+- [x] Registrierung, Login, Logout
+- [x] Passwort-Reset per Mail (SMTP, ohne `SMTP_HOST` Ausgabe ins Log)
+- [x] Profilseite inkl. Passwortwechsel
+- [x] Geschützte Routen (`requireSession`)
+- [x] Rate Limit auf Auth-Endpunkte
+- [x] Optionales GitHub OAuth (nur aktiv, wenn beide ENV gesetzt sind)
+- [x] E2E-Test des vollen Pfads
 
 ## Phase 2 — Sites & Tenant-Routing
 

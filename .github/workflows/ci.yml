@@ -45,3 +45,47 @@ jobs:
       - run: pnpm test
 
       - run: pnpm build
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: webpresslite
+          POSTGRES_PASSWORD: webpresslite
+          POSTGRES_DB: webpresslite
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U webpresslite -d webpresslite"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm db:migrate
+
+      # Playwright starts the dev server itself and drives it via lvh.me:3000,
+      # which resolves to 127.0.0.1 and matches APP_URL — Better Auth rejects
+      # requests from any other origin.
+      - run: pnpm test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

@@ -14,9 +14,11 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: 'pnpm build && pnpm start',
+        // `next start` refuses to serve an `output: 'standalone'` build, so the
+        // suite drives the dev server unless a running instance is pointed at.
+        command: 'pnpm dev',
         url: baseURL,
         reuseExistingServer: !process.env.CI,
-        timeout: 180_000,
+        timeout: 120_000,
       },
 });

@@ -73,9 +73,12 @@ openssl rand -base64 32
 ## Projektstruktur
 
 ```
+src/app/(platform)/ Dashboard und Auth
 src/app/            Next.js App Router
 src/components/ui/  shadcn/ui-Komponenten
 src/lib/env.ts      validierte Konfiguration
+src/lib/auth/       better-auth Server, Client, Session-Helfer
+src/lib/mail/       SMTP-Versand und Mail-Vorlagen
 src/lib/db/         Drizzle-Client, Schema, Queries
 src/lib/storage/    S3/MinIO-Client
 drizzle/            generierte Migrationen (unveränderlich, sobald angewendet)
@@ -87,6 +90,26 @@ tests/e2e/          Playwright
 Alle Datenbankzugriffe laufen über `src/lib/db/queries/*`. Direkte
 Drizzle-Aufrufe in Komponenten oder Route Handlern sind per ESLint-Regel
 untersagt, damit Tenant-Scoping und Berechtigungsprüfung nicht umgangen werden.
+
+## Auth
+
+Registrierung, Login und Passwort-Reset laufen über
+[better-auth](https://better-auth.com) mit E-Mail und Passwort. GitHub OAuth ist
+optional und wird nur registriert, wenn `GITHUB_CLIENT_ID` **und**
+`GITHUB_CLIENT_SECRET` gesetzt sind.
+
+Ohne konfigurierten `SMTP_HOST` werden Mails nicht versendet, sondern ins Log
+geschrieben — praktisch für die lokale Entwicklung: den Reset-Link findest du
+dann in der Ausgabe von `pnpm dev`.
+
+**Wichtig:** better-auth prüft den Origin gegen `APP_URL`. Rufe die App in der
+Entwicklung deshalb über `http://lvh.me:3000` auf, nicht über `127.0.0.1:3000` —
+sonst werden alle Auth-Requests mit `INVALID_ORIGIN` abgelehnt.
+
+Rate Limits pro IP: Anmeldung 10/Minute, Registrierung 10/Stunde,
+Passwort-Reset anfordern 3/Stunde.
+
+Der Seed legt eine Demo-Nutzerin an: `demo@example.com` / `demo-password-123`.
 
 ## Tests
 

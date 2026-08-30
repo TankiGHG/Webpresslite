@@ -66,4 +66,40 @@ describe('getEnv', () => {
 
     expect(getEnv).toThrowError(/DATABASE_URL/);
   });
+
+  it('treats an empty optional variable as unset', async () => {
+    process.env.SMTP_HOST = '   ';
+    const env = (await loadGetEnv())();
+
+    expect(env.SMTP_HOST).toBeUndefined();
+  });
+
+  it('defaults the smtp port', async () => {
+    const env = (await loadGetEnv())();
+
+    expect(env.SMTP_PORT).toBe(587);
+  });
+});
+
+describe('isGithubOAuthEnabled', () => {
+  it('is disabled when neither credential is set', async () => {
+    const { getEnv, isGithubOAuthEnabled } = await import('@/lib/env');
+
+    expect(isGithubOAuthEnabled(getEnv())).toBe(false);
+  });
+
+  it('is enabled when both credentials are set', async () => {
+    process.env.GITHUB_CLIENT_ID = 'client-id';
+    process.env.GITHUB_CLIENT_SECRET = 'client-secret';
+    const { getEnv, isGithubOAuthEnabled } = await import('@/lib/env');
+
+    expect(isGithubOAuthEnabled(getEnv())).toBe(true);
+  });
+
+  it('refuses a half-configured provider', async () => {
+    process.env.GITHUB_CLIENT_ID = 'client-id';
+    const { getEnv } = await import('@/lib/env');
+
+    expect(getEnv).toThrowError(/GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET/);
+  });
 });

@@ -1,4 +1,15 @@
-import { boolean, index, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  jsonb,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
+import { SITE_PLANS, SITE_ROLES } from '@/lib/sites/roles';
 
 /**
  * Drizzle schema. Tables are added phase by phase: auth tables here in phase 1,
@@ -91,5 +102,59 @@ export const verification = pgTable(
   (table) => [index('verification_identifier_idx').on(table.identifier)],
 );
 
+// --- Sites and membership ---------------------------------------------------
+
+export const siteRole = pgEnum('site_role', SITE_ROLES);
+export const sitePlan = pgEnum('site_plan', SITE_PLANS);
+
+export interface ThemeSettings {
+  colors?: Record<string, string>;
+  fontFamily?: string;
+  logoMediaId?: string;
+}
+
+export const sites = pgTable(
+  'sites',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    subdomain: text('subdomain').notNull(),
+    customDomain: text('custom_domain'),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    theme: text('theme').notNull().default('minimal'),
+    themeSettings: jsonb('theme_settings').$type<ThemeSettings>().notNull().default({}),
+    plan: sitePlan('plan').notNull().default('free'),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('sites_subdomain_unique').on(table.subdomain),
+    uniqueIndex('sites_custom_domain_unique').on(table.customDomain),
+    index('sites_owner_id_idx').on(table.ownerId),
+  ],
+);
+
+export const siteMembers = pgTable(
+  'site_members',
+  {
+    siteId: text('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    role: siteRole('role').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.siteId, table.userId] }),
+    index('site_members_user_id_idx').on(table.userId),
+  ],
+);
+
 export type UserRow = typeof user.$inferSelect;
 export type SessionRow = typeof session.$inferSelect;
+export type SiteRow = typeof sites.$inferSelect;
+export type SiteMemberRow = typeof siteMembers.$inferSelect;
+export type { SitePlan, SiteRole } from '@/lib/sites/roles';

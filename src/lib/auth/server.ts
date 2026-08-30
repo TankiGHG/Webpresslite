@@ -36,6 +36,10 @@ function create() {
         }
       : {},
 
+    // Tenant sites live on `*.<ROOT_DOMAIN>`. Without them the origin check
+    // rejects every auth request made from a site page.
+    trustedOrigins: [env.APP_URL, `http://*.${env.ROOT_DOMAIN}`, `https://*.${env.ROOT_DOMAIN}`],
+
     session: {
       expiresIn: 60 * 60 * 24 * 30,
       updateAge: 60 * 60 * 24,
@@ -50,7 +54,10 @@ function create() {
       max: 100,
       customRules: {
         '/sign-in/email': { window: 60, max: 10 },
-        '/sign-up/email': { window: 60 * 60, max: 10 },
+        // Deliberately not tighter: behind a corporate or university NAT a
+        // handful of legitimate sign-ups per hour is normal, while a scripted
+        // abuser wants thousands and is stopped either way.
+        '/sign-up/email': { window: 60 * 60, max: 30 },
         '/request-password-reset': { window: 60 * 60, max: 3 },
         '/reset-password': { window: 60 * 60, max: 5 },
       },

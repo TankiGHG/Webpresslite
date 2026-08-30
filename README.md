@@ -74,10 +74,12 @@ openssl rand -base64 32
 
 ```
 src/app/(platform)/ Dashboard und Auth
+src/app/(site)/     öffentliches Rendering pro Tenant
 src/app/            Next.js App Router
 src/components/ui/  shadcn/ui-Komponenten
 src/lib/env.ts      validierte Konfiguration
 src/lib/auth/       better-auth Server, Client, Session-Helfer
+src/lib/tenant/     Host-Parsing, Reserved-List, Subdomain-Validierung
 src/lib/mail/       SMTP-Versand und Mail-Vorlagen
 src/lib/db/         Drizzle-Client, Schema, Queries
 src/lib/storage/    S3/MinIO-Client
@@ -110,6 +112,21 @@ Rate Limits pro IP: Anmeldung 10/Minute, Registrierung 10/Stunde,
 Passwort-Reset anfordern 3/Stunde.
 
 Der Seed legt eine Demo-Nutzerin an: `demo@example.com` / `demo-password-123`.
+
+## Multi-Tenancy
+
+Jede Site ist unter `<subdomain>.<ROOT_DOMAIN>` erreichbar. Die Middleware liest
+den Host (hinter dem Proxy `X-Forwarded-Host`), löst ihn gegen die Datenbank auf
+und rewritet auf `/_sites/[siteId]/...`.
+
+`example.com`, `www.` und `app.` gelten als Plattform, alles andere unter der
+Root-Domain als Tenant, alles außerhalb als Custom Domain (Phase 7).
+
+Lokal funktioniert das ohne Konfiguration, weil `lvh.me` und alle seine
+Subdomains auf `127.0.0.1` zeigen — `meineseite.lvh.me:3000` erreicht direkt die
+Site. Der Seed legt `demo.lvh.me:3000` an.
+
+Reservierte Subdomains stehen in `src/lib/tenant/reserved.ts`.
 
 ## Tests
 

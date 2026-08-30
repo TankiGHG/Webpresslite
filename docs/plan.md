@@ -39,13 +39,13 @@ Statusbericht und einer Freigabe, bevor die nächste beginnt.
 **Fertig wenn:** zwei Sites parallel unter unterschiedlichen Subdomains erreichbar sind
 und Cross-Tenant-Zugriff im Test fehlschlägt.
 
-- [ ] Tabellen `sites`, `site_members`
-- [ ] Site anlegen: Name + Subdomain, Verfügbarkeitsprüfung, Reserved-List
-- [ ] Site löschen
-- [ ] Site-Umschalter im Dashboard
-- [ ] Middleware-Routing auf `/_sites/[siteId]/...`
-- [ ] Platzhalterseite unter der Subdomain
-- [ ] Test: Cross-Tenant-Zugriff schlägt fehl
+- [x] Tabellen `sites`, `site_members` (Migration `0001_serious_nekra.sql`)
+- [x] Site anlegen: Name + Subdomain, Live-Verfügbarkeitsprüfung, Reserved-List
+- [x] Site löschen (nur Eigentümer:in, mit Tippbestätigung)
+- [x] Site-Umschalter im Dashboard
+- [x] Middleware-Routing auf `/_sites/[siteId]/...` (Node-Runtime, mit Host-Cache)
+- [x] Platzhalterseite unter der Subdomain
+- [x] Test: Cross-Tenant-Zugriff schlägt fehl
 
 ## Phase 3 — Inhalte & Editor
 

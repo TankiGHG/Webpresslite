@@ -52,6 +52,12 @@ const config = [
     ],
     rules: { 'no-restricted-imports': 'off' },
   },
+  {
+    // Playwright fixtures take a callback named `use`, which the React Hooks
+    // rule mistakes for a hook call.
+    files: ['tests/e2e/**/*.ts'],
+    rules: { 'react-hooks/rules-of-hooks': 'off' },
+  },
 ];
 
 export default config;

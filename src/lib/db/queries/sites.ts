@@ -2,7 +2,7 @@ import 'server-only';
 import { randomBytes } from 'node:crypto';
 import { and, asc, eq, isNotNull, or } from 'drizzle-orm';
 import { getDb } from '@/lib/db/client';
-import { siteMembers, sites, type SiteRow } from '@/lib/db/schema';
+import { siteMembers, sites, user, type SiteRow } from '@/lib/db/schema';
 import { can, type Capability } from '@/lib/sites/permissions';
 import { limitsFor } from '@/lib/sites/plans';
 import { roleAtLeast, type SitePlan, type SiteRole } from '@/lib/sites/roles';
@@ -35,8 +35,26 @@ function newId(): string {
   return randomBytes(16).toString('hex');
 }
 
-/** All sites the user is a member of, owned ones included. */
+async function isPlatformAdmin(userId: string): Promise<boolean> {
+  const rows = await getDb()
+    .select({ id: user.id })
+    .from(user)
+    .where(and(eq(user.id, userId), eq(user.isPlatformAdmin, true)))
+    .limit(1);
+  return rows.length > 0;
+}
+
+/**
+ * All sites the user is a member of, owned ones included. A platform admin
+ * is not a member of every site, so this doubles as the one place that turns
+ * the flag into an owner-level view of the whole platform.
+ */
 export async function listSitesForUser(userId: string): Promise<SiteWithRole[]> {
+  if (await isPlatformAdmin(userId)) {
+    const rows = await getDb().select().from(sites).orderBy(asc(sites.createdAt));
+    return rows.map((site) => ({ ...site, role: 'owner' as const }));
+  }
+
   const rows = await getDb()
     .select({ site: sites, role: siteMembers.role })
     .from(siteMembers)
@@ -50,7 +68,8 @@ export async function listSitesForUser(userId: string): Promise<SiteWithRole[]> 
 /**
  * Loads a site *for a specific user*. Returns null when the site does not exist
  * or the user is not a member — the two are deliberately indistinguishable, so
- * the dashboard cannot be used to probe for foreign site ids.
+ * the dashboard cannot be used to probe for foreign site ids. A platform admin
+ * gets a synthetic `owner` role for any site, membership row or not.
  */
 export async function getSiteForUser(siteId: string, userId: string): Promise<SiteWithRole | null> {
   const rows = await getDb()
@@ -61,7 +80,12 @@ export async function getSiteForUser(siteId: string, userId: string): Promise<Si
     .limit(1);
 
   const row = rows[0];
-  return row ? { ...row.site, role: row.role } : null;
+  if (row) return { ...row.site, role: row.role };
+  if (!(await isPlatformAdmin(userId))) return null;
+
+  const siteRows = await getDb().select().from(sites).where(eq(sites.id, siteId)).limit(1);
+  const site = siteRows[0];
+  return site ? { ...site, role: 'owner' as const } : null;
 }
 
 /**

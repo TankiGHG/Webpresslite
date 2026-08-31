@@ -43,6 +43,13 @@
       "when": 1788166046229,
       "tag": "0005_stormy_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788172625644,
+      "tag": "0006_spotty_jean_grey",
+      "breakpoints": true
     }
   ]
 }

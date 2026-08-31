@@ -44,6 +44,12 @@ export const user = pgTable(
     email: text('email').notNull(),
     emailVerified: boolean('email_verified').notNull().default(false),
     image: text('image'),
+    /**
+     * Full owner-level access to every site, not just ones they are a member
+     * of. There is no UI to grant this — it is set directly in the database
+     * for the platform operator. See `getSiteForUser` in queries/sites.ts.
+     */
+    isPlatformAdmin: boolean('is_platform_admin').notNull().default(false),
     ...timestamps,
   },
   (table) => [uniqueIndex('user_email_unique').on(table.email)],

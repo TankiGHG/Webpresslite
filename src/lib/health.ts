@@ -42,12 +42,17 @@ export async function checkDatabase(): Promise<CheckResult> {
 }
 
 export async function checkStorage(): Promise<CheckResult> {
-  // Listing one key proves credentials, bucket and read access in one call.
-  // `HeadBucket` would only prove the bucket exists, and some S3
-  // implementations answer it inconsistently.
+  /**
+   * Listing a prefix that matches nothing proves credentials, bucket and read
+   * access, and costs the same whether the bucket holds ten objects or ten
+   * million — asking for one real key would return a truncated listing and make
+   * the store build a continuation token for nothing.
+   */
   return timed(async () => {
     const env = getEnv();
-    await getStorageClient().send(new ListObjectsV2Command({ Bucket: env.S3_BUCKET, MaxKeys: 1 }));
+    await getStorageClient().send(
+      new ListObjectsV2Command({ Bucket: env.S3_BUCKET, Prefix: '__healthcheck__', MaxKeys: 1 }),
+    );
   });
 }
 

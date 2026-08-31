@@ -1,8 +1,9 @@
 import {
+  countPublishedPosts,
   getPublicSite,
   listAllPublished,
+  listPublicCategories,
   POSTS_PER_PAGE,
-  countPublishedPosts,
 } from '@/lib/db/queries/public-sites';
 import { getEnv } from '@/lib/env';
 import { siteUrl } from '@/lib/tenant/host';
@@ -30,6 +31,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ sit
   // Paginated listings are noindex, so only page 2 and up as crawl paths.
   for (let page = 2; page <= pageCount; page += 1) {
     urls.push({ loc: `${base}/seite/${page}`, priority: '0.3' });
+  }
+
+  // Only categories that actually have published posts behind them.
+  for (const category of await listPublicCategories(siteId)) {
+    urls.push({ loc: `${base}/kategorie/${category.slug}`, priority: '0.5' });
   }
 
   for (const entry of entries) {

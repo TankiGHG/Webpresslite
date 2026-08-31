@@ -47,6 +47,7 @@ export default async function SiteLayout({
           <nav aria-label="Hauptnavigation" className="site-nav">
             <Link href="/">Start</Link>
             <Link href="/archiv">Archiv</Link>
+            <Link href="/suche">Suche</Link>
           </nav>
         </div>
       </header>

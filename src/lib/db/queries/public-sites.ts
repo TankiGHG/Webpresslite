@@ -1,8 +1,17 @@
 import 'server-only';
-import { and, count, desc, eq, lte } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, lte, sql } from 'drizzle-orm';
 import { unstable_cache } from 'next/cache';
+import sanitizeHtml from 'sanitize-html';
 import { getDb } from '@/lib/db/client';
-import { posts, sites, type PostRow, type SiteRow } from '@/lib/db/schema';
+import {
+  categories,
+  postTags,
+  posts,
+  sites,
+  tags,
+  type PostRow,
+  type SiteRow,
+} from '@/lib/db/schema';
 
 /**
  * Cache tags. Public pages are cached per site and invalidated when that
@@ -227,6 +236,207 @@ async function loadPublishedPost(
     .select()
     .from(posts)
     .where(and(publishedCondition(siteId, now), eq(posts.slug, slug), eq(posts.type, type)))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+// --- Taxonomies and search ---------------------------------------------------
+
+export interface PublicTaxonomy {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  postCount: number;
+}
+
+/**
+ * The search expression. It must stay byte for byte the same as the one behind
+ * `posts_search_idx`, otherwise Postgres falls back to a sequential scan.
+ */
+function searchVector() {
+  return sql`to_tsvector('german', ${posts.title} || ' ' || coalesce(${posts.excerpt}, '') || ' ' || ${posts.contentText})`;
+}
+
+export async function listPublicCategories(siteId: string): Promise<PublicTaxonomy[]> {
+  const now = new Date();
+
+  return getDb()
+    .select({
+      id: categories.id,
+      name: categories.name,
+      slug: categories.slug,
+      description: categories.description,
+      postCount: sql<number>`count(${posts.id})::int`,
+    })
+    .from(categories)
+    .leftJoin(
+      posts,
+      and(
+        eq(posts.categoryId, categories.id),
+        eq(posts.status, 'published'),
+        lte(posts.publishedAt, now),
+      ),
+    )
+    .where(eq(categories.siteId, siteId))
+    .groupBy(categories.id)
+    .having(sql`count(${posts.id}) > 0`)
+    .orderBy(categories.name);
+}
+
+export async function getCategoryBySlug(
+  siteId: string,
+  slug: string,
+): Promise<{ id: string; name: string; description: string | null } | null> {
+  const rows = await getDb()
+    .select({ id: categories.id, name: categories.name, description: categories.description })
+    .from(categories)
+    .where(and(eq(categories.siteId, siteId), eq(categories.slug, slug)))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+export async function getTagBySlug(
+  siteId: string,
+  slug: string,
+): Promise<{ id: string; name: string } | null> {
+  const rows = await getDb()
+    .select({ id: tags.id, name: tags.name })
+    .from(tags)
+    .where(and(eq(tags.siteId, siteId), eq(tags.slug, slug)))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+export async function listPostsInCategory(
+  siteId: string,
+  categoryId: string,
+): Promise<PublicPostListItem[]> {
+  const now = new Date();
+
+  return getDb()
+    .select({
+      id: posts.id,
+      title: posts.title,
+      slug: posts.slug,
+      excerpt: posts.excerpt,
+      publishedAt: posts.publishedAt,
+    })
+    .from(posts)
+    .where(and(publishedCondition(siteId, now), eq(posts.categoryId, categoryId)))
+    .orderBy(desc(posts.publishedAt));
+}
+
+export async function listPostsWithTag(
+  siteId: string,
+  tagId: string,
+): Promise<PublicPostListItem[]> {
+  const now = new Date();
+
+  return getDb()
+    .select({
+      id: posts.id,
+      title: posts.title,
+      slug: posts.slug,
+      excerpt: posts.excerpt,
+      publishedAt: posts.publishedAt,
+    })
+    .from(posts)
+    .innerJoin(postTags, eq(postTags.postId, posts.id))
+    .where(and(publishedCondition(siteId, now), eq(postTags.tagId, tagId)))
+    .orderBy(desc(posts.publishedAt));
+}
+
+export interface SearchHit extends PublicPostListItem {
+  rank: number;
+  headline: string;
+}
+
+/**
+ * Full text search within one site.
+ *
+ * `websearch_to_tsquery` takes what people actually type — quoted phrases, `or`,
+ * a leading minus — without throwing on syntax a plain `to_tsquery` would
+ * reject. The site scope is part of the WHERE clause, so a search can never
+ * reach across tenants.
+ */
+/**
+ * `ts_headline` returns the *original* text with the markers inserted — it does
+ * not escape anything. A post whose body contains markup would otherwise be
+ * injected verbatim into the results page, so the snippet is reduced to the one
+ * tag we asked Postgres to add.
+ */
+function sanitizeHeadline(headline: string): string {
+  return sanitizeHtml(headline, { allowedTags: ['mark'], allowedAttributes: {} });
+}
+
+export async function searchPosts(siteId: string, query: string, limit = 20): Promise<SearchHit[]> {
+  const trimmed = query.trim();
+  if (trimmed.length === 0) return [];
+
+  const now = new Date();
+  const tsQuery = sql`websearch_to_tsquery('german', ${trimmed})`;
+
+  const rows = await getDb()
+    .select({
+      id: posts.id,
+      title: posts.title,
+      slug: posts.slug,
+      excerpt: posts.excerpt,
+      publishedAt: posts.publishedAt,
+      rank: sql<number>`ts_rank(${searchVector()}, ${tsQuery})`,
+      headline: sql<string>`ts_headline('german', ${posts.contentText}, ${tsQuery}, 'MaxWords=30, MinWords=10, ShortWord=3, MaxFragments=1, StartSel=<mark>, StopSel=</mark>')`,
+    })
+    .from(posts)
+    .where(
+      and(
+        publishedCondition(siteId, now),
+        eq(posts.type, 'post'),
+        sql`${searchVector()} @@ ${tsQuery}`,
+      ),
+    )
+    .orderBy(sql`ts_rank(${searchVector()}, ${tsQuery}) desc`)
+    .limit(limit);
+
+  return rows.map((row) => ({ ...row, headline: sanitizeHeadline(row.headline) }));
+}
+
+/** Tags of a set of posts, for rendering them under an article. */
+export async function getPublicPostTags(
+  postIds: string[],
+): Promise<Map<string, { name: string; slug: string }[]>> {
+  if (postIds.length === 0) return new Map();
+
+  const rows = await getDb()
+    .select({ postId: postTags.postId, name: tags.name, slug: tags.slug })
+    .from(postTags)
+    .innerJoin(tags, eq(tags.id, postTags.tagId))
+    .where(inArray(postTags.postId, postIds))
+    .orderBy(tags.name);
+
+  const result = new Map<string, { name: string; slug: string }[]>();
+  for (const row of rows) {
+    const bucket = result.get(row.postId);
+    if (bucket) bucket.push({ name: row.name, slug: row.slug });
+    else result.set(row.postId, [{ name: row.name, slug: row.slug }]);
+  }
+
+  return result;
+}
+
+export async function getPostCategory(
+  siteId: string,
+  categoryId: string | null,
+): Promise<{ name: string; slug: string } | null> {
+  if (!categoryId) return null;
+
+  const rows = await getDb()
+    .select({ name: categories.name, slug: categories.slug })
+    .from(categories)
+    .where(and(eq(categories.siteId, siteId), eq(categories.id, categoryId)))
     .limit(1);
 
   return rows[0] ?? null;

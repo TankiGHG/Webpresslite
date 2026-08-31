@@ -84,6 +84,7 @@ src/lib/editor/     TipTap-Extensions, serverseitiges Rendering, Sanitizing
 src/lib/posts/      Slugs und Beitrags-Vokabular
 src/lib/themes/     Theme-Definitionen und Anpassungen
 src/lib/media/      Upload-Regeln, Storage-Keys, sharp-Varianten
+src/lib/comments/   Kommentar-Validierung und Spam-Heuristik
 src/lib/mail/       SMTP-Versand und Mail-Vorlagen
 src/lib/db/         Drizzle-Client, Schema, Queries
 src/lib/storage/    S3/MinIO-Client
@@ -208,6 +209,32 @@ Server die Varianten. Die Anwendung sieht die Datei nie.
 braucht der Bucket eine CORS-Konfiguration — sonst scheitert jeder Upload am
 Preflight. `docker-compose.dev.yml` setzt dafür `MINIO_API_CORS_ALLOW_ORIGIN`.
 In Produktion gehören dort die echten Origins hinein, nicht `*`.
+
+## Kategorien, Tags und Suche
+
+Ein Beitrag hat höchstens eine Kategorie und beliebig viele Tags. Kategorien
+werden unter `Dashboard → Site → Taxonomien` gepflegt; Tags entstehen beim
+Schreiben, indem sie im Beitrag eingetragen werden.
+
+| Pfad                | Inhalt                                       |
+| ------------------- | -------------------------------------------- |
+| `/kategorie/<slug>` | Alle veröffentlichten Beiträge der Kategorie |
+| `/tag/<slug>`       | Alle veröffentlichten Beiträge mit dem Tag   |
+| `/suche?q=…`        | Volltextsuche innerhalb der Site             |
+
+Die Suche läuft über einen GIN-Ausdrucksindex auf Titel, Auszug und Fließtext.
+Der Ausdruck in `searchVector()` muss zeichengenau dem im Schema hinterlegten
+Index entsprechen, sonst fällt Postgres auf einen sequentiellen Scan zurück.
+
+## Kommentare
+
+Kommentare sind nach dem Absenden **immer** `pending` und erscheinen erst nach
+Freigabe unter `Dashboard → Site → Kommentare`. Moderieren darf, wer mindestens
+die Rolle Redaktion hat.
+
+Spam-Schutz ohne Drittanbieter: ein Honeypot-Feld, ein Rate Limit von fünf
+Kommentaren je zehn Minuten und Adresse (nur gehasht gespeichert) sowie eine
+Heuristik, die offensichtlichen Spam direkt in die Spam-Queue schiebt.
 
 ## Tests
 

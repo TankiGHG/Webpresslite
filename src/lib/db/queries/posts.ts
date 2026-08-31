@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { and, asc, count, desc, eq, lte, ne, sql } from 'drizzle-orm';
 import { getDb } from '@/lib/db/client';
 import { posts, sites, user, type PostRow } from '@/lib/db/schema';
-import { renderContent, deriveExcerpt } from '@/lib/editor/render';
+import { contentToText, renderContent, deriveExcerpt } from '@/lib/editor/render';
 import type { JSONContent } from '@/lib/editor/types';
 import type { PostStatus, PostType } from '@/lib/posts/constants';
 import { uniqueSlug } from '@/lib/posts/slug';
@@ -124,6 +124,7 @@ export async function createPost(input: CreatePostInput): Promise<PostRow> {
       slug,
       contentJson: emptyDocument,
       contentHtml: renderContent(emptyDocument),
+      contentText: contentToText(emptyDocument),
       status: 'draft',
     })
     .returning();
@@ -173,6 +174,8 @@ export async function updatePost(input: UpdatePostInput): Promise<PostRow> {
   if (input.content !== undefined) {
     values.contentJson = input.content;
     values.contentHtml = renderContent(input.content);
+    // Kept in step with the document so full text search never goes stale.
+    values.contentText = contentToText(input.content);
     values.excerpt =
       input.excerpt !== undefined ? input.excerpt : deriveExcerpt(input.content) || null;
   } else if (input.excerpt !== undefined) {

@@ -5,8 +5,10 @@ import { DeletePostForm } from '@/components/editor/delete-post-form';
 import { PostEditor } from '@/components/editor/post-editor';
 import { PostSettingsForm } from '@/components/editor/post-settings-form';
 import { PublishPanel } from '@/components/editor/publish-panel';
+import { PostTaxonomyForm } from '@/components/taxonomies/post-taxonomy-form';
 import { requireSession } from '@/lib/auth/session';
 import { getPost } from '@/lib/db/queries/posts';
+import { getPostTags, listCategories } from '@/lib/db/queries/taxonomies';
 import { getSiteForUser } from '@/lib/db/queries/sites';
 import { getEnv } from '@/lib/env';
 import { siteUrl } from '@/lib/tenant/host';
@@ -30,6 +32,11 @@ export default async function EditPostPage({
   const base = siteUrl(site.subdomain, getEnv().ROOT_DOMAIN);
   const path = post.type === 'page' ? `/${post.slug}` : `/beitrag/${post.slug}`;
 
+  const [categories, postTagRows] = await Promise.all([
+    listCategories(siteId, user.id),
+    getPostTags(siteId, post.id, user.id),
+  ]);
+
   return (
     <div className="space-y-8">
       <nav className="text-sm text-[var(--color-muted-foreground)]">
@@ -52,6 +59,14 @@ export default async function EditPostPage({
           status={post.status}
           publishedAt={post.publishedAt?.toISOString() ?? null}
           publicUrl={`${base}${path}`}
+        />
+
+        <PostTaxonomyForm
+          siteId={siteId}
+          postId={post.id}
+          categories={categories}
+          categoryId={post.categoryId}
+          tagNames={postTagRows.map((tag) => tag.name)}
         />
 
         <PostSettingsForm

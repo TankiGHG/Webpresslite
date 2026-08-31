@@ -89,12 +89,12 @@ responsiv ausgeliefert wird.
 
 **Fertig wenn:** ein Kommentar erscheint erst nach Freigabe öffentlich.
 
-- [ ] Tabellen `categories`, `tags`, `post_tags`, `comments`
-- [ ] Kategorie- und Tag-Archivseiten
-- [ ] Postgres-Volltextsuche pro Site
-- [ ] Kommentarformular
-- [ ] Moderations-Queue
-- [ ] Spam-Schutz: Honeypot + Rate Limit
+- [x] Tabellen `categories`, `tags`, `post_tags`, `comments` (Migration `0004_marvelous_slapstick.sql`)
+- [x] Kategorie- und Tag-Archivseiten
+- [x] Postgres-Volltextsuche pro Site (GIN-Ausdrucksindex, `websearch_to_tsquery`)
+- [x] Kommentarformular
+- [x] Moderations-Queue mit Filter nach Status
+- [x] Spam-Schutz: Honeypot, Rate Limit und Heuristik
 
 ## Phase 7 — Team, Statistik, Custom Domain
 

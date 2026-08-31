@@ -140,6 +140,88 @@ async function main() {
   }
 
   await seedMedia(siteId, userId);
+  await seedTaxonomiesAndComments(siteId, userId);
+}
+
+/** One category, a few tags and one comment in each moderation state. */
+async function seedTaxonomiesAndComments(siteId: string, userId: string) {
+  const { getDb } = await import('../src/lib/db/client');
+  const { categories, comments, posts } = await import('../src/lib/db/schema');
+  const { and, eq } = await import('drizzle-orm');
+  const { createCategory, setPostCategory, setPostTags } =
+    await import('../src/lib/db/queries/taxonomies');
+
+  const existingCategories = await getDb()
+    .select({ id: categories.id })
+    .from(categories)
+    .where(eq(categories.siteId, siteId));
+
+  if (existingCategories.length === 0) {
+    const category = await createCategory({
+      siteId,
+      userId,
+      name: 'Aus der Werkstatt',
+      description: 'Wie diese Plattform entsteht.',
+    });
+
+    const published = await getDb()
+      .select({ id: posts.id, title: posts.title })
+      .from(posts)
+      .where(and(eq(posts.siteId, siteId), eq(posts.type, 'post')));
+
+    for (const post of published) {
+      await setPostCategory({ siteId, userId, postId: post.id, categoryId: category.id });
+      await setPostTags({ siteId, userId, postId: post.id, tagNames: ['webpresslite', 'Notizen'] });
+    }
+
+    console.info('Created seed category and tags.');
+  }
+
+  const existingComments = await getDb()
+    .select({ id: comments.id })
+    .from(comments)
+    .where(eq(comments.siteId, siteId));
+
+  if (existingComments.length > 0) {
+    console.info(`Site already has ${existingComments.length} comments.`);
+    return;
+  }
+
+  const target = (
+    await getDb()
+      .select({ id: posts.id })
+      .from(posts)
+      .where(and(eq(posts.siteId, siteId), eq(posts.status, 'published')))
+      .limit(1)
+  )[0];
+
+  if (!target) return;
+
+  const { randomBytes } = await import('node:crypto');
+  await getDb()
+    .insert(comments)
+    .values([
+      {
+        id: randomBytes(16).toString('hex'),
+        postId: target.id,
+        siteId,
+        authorName: 'Freigegebene Leserin',
+        authorEmail: 'leserin@example.com',
+        body: 'Dieser Kommentar ist freigegeben und daher öffentlich sichtbar.',
+        status: 'approved',
+      },
+      {
+        id: randomBytes(16).toString('hex'),
+        postId: target.id,
+        siteId,
+        authorName: 'Wartender Leser',
+        authorEmail: 'leser@example.com',
+        body: 'Dieser Kommentar wartet auf Freigabe und ist noch nicht sichtbar.',
+        status: 'pending',
+      },
+    ]);
+
+  console.info('Created 2 seed comments (1 approved, 1 pending).');
 }
 
 /**

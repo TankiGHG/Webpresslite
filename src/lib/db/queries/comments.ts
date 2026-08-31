@@ -4,7 +4,7 @@ import { and, asc, count, desc, eq, gt, sql } from 'drizzle-orm';
 import { getDb } from '@/lib/db/client';
 import { comments, posts, type CommentRow } from '@/lib/db/schema';
 import type { CommentStatus } from '@/lib/comments/constants';
-import { requireSiteAccess } from './sites';
+import { requireCapability } from './sites';
 
 export class CommentNotFoundError extends Error {
   constructor() {
@@ -148,7 +148,7 @@ export async function listCommentsForModeration(
   userId: string,
   status?: CommentStatus,
 ): Promise<ModerationComment[]> {
-  await requireSiteAccess(siteId, userId, 'editor');
+  await requireCapability(siteId, userId, 'comment:moderate');
 
   const where = status
     ? and(eq(comments.siteId, siteId), eq(comments.status, status))
@@ -173,7 +173,7 @@ export async function listCommentsForModeration(
 }
 
 export async function countPendingComments(siteId: string, userId: string): Promise<number> {
-  await requireSiteAccess(siteId, userId, 'editor');
+  await requireCapability(siteId, userId, 'comment:moderate');
 
   const rows = await getDb()
     .select({ value: count() })
@@ -189,7 +189,7 @@ export async function setCommentStatus(input: {
   commentId: string;
   status: CommentStatus;
 }): Promise<{ postSlug: string }> {
-  await requireSiteAccess(input.siteId, input.userId, 'editor');
+  await requireCapability(input.siteId, input.userId, 'comment:moderate');
 
   const updated = await getDb()
     .update(comments)
@@ -214,7 +214,7 @@ export async function deleteComment(input: {
   userId: string;
   commentId: string;
 }): Promise<void> {
-  await requireSiteAccess(input.siteId, input.userId, 'editor');
+  await requireCapability(input.siteId, input.userId, 'comment:moderate');
 
   const deleted = await getDb()
     .delete(comments)
@@ -229,7 +229,7 @@ export async function commentCounts(
   siteId: string,
   userId: string,
 ): Promise<Record<CommentStatus, number>> {
-  await requireSiteAccess(siteId, userId, 'editor');
+  await requireCapability(siteId, userId, 'comment:moderate');
 
   const rows = await getDb()
     .select({ status: comments.status, value: sql<number>`count(*)::int` })

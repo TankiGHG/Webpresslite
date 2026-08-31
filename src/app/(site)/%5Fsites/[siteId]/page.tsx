@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { Pagination } from '@/components/site/pagination';
 import { PostList } from '@/components/site/post-list';
+import { after } from 'next/server';
 import { getPublicSite, getPublishedPage } from '@/lib/db/queries/public-sites';
+import { recordView } from '@/lib/db/queries/stats';
 
 export async function generateMetadata({
   params,
@@ -28,6 +30,12 @@ export default async function SiteHomePage({ params }: { params: Promise<{ siteI
   if (!site) notFound();
 
   const { posts, page, pageCount } = await getPublishedPage(siteId, 1);
+
+  // A site-level view: no post id, so the home page counts towards the total
+  // without polluting the per-post ranking.
+  after(async () => {
+    await recordView({ siteId, postId: null });
+  });
 
   return (
     <div>

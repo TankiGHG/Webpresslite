@@ -42,3 +42,25 @@ export function emailVerificationMail(to: string, url: string): MailMessage {
     }),
   };
 }
+
+export function invitationMail(
+  to: string,
+  siteName: string,
+  roleLabel: string,
+  url: string,
+): MailMessage {
+  return {
+    to,
+    subject: `Einladung zu ${siteName}`,
+    text:
+      `Du wurdest eingeladen, bei "${siteName}" mitzuarbeiten.\n\n` +
+      `Rolle: ${roleLabel}\n\n` +
+      `Einladung annehmen:\n${url}\n\n` +
+      `Der Link ist sieben Tage gültig und funktioniert nur mit dieser Adresse.`,
+    html: layout(
+      `Einladung zu ${siteName}`,
+      `Du wurdest eingeladen, bei <strong>${siteName}</strong> mitzuarbeiten. Deine Rolle: ${roleLabel}. Der Link ist sieben Tage gültig und funktioniert nur mit dieser E-Mail-Adresse.`,
+      { label: 'Einladung annehmen', url },
+    ),
+  };
+}

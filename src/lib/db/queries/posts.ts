@@ -7,7 +7,8 @@ import { contentToText, renderContent, deriveExcerpt } from '@/lib/editor/render
 import type { JSONContent } from '@/lib/editor/types';
 import type { PostStatus, PostType } from '@/lib/posts/constants';
 import { uniqueSlug } from '@/lib/posts/slug';
-import { requireSiteAccess } from './sites';
+import { limitsFor } from '@/lib/sites/plans';
+import { PlanLimitError, requireCapability, requireSiteAccess } from './sites';
 
 /**
  * Every function takes a `siteId` and the acting user, and checks access before
@@ -104,7 +105,19 @@ export interface CreatePostInput {
 }
 
 export async function createPost(input: CreatePostInput): Promise<PostRow> {
-  await requireSiteAccess(input.siteId, input.userId);
+  const site = await requireCapability(input.siteId, input.userId, 'post:create');
+
+  const used = await getDb()
+    .select({ value: count() })
+    .from(posts)
+    .where(eq(posts.siteId, input.siteId));
+
+  const limit = limitsFor(site.plan).postsPerSite;
+  if ((used[0]?.value ?? 0) >= limit) {
+    throw new PlanLimitError(
+      `Der Plan ${site.plan} erlaubt ${limit} Inhalte pro Site. Wechsle zu Pro für mehr.`,
+    );
+  }
 
   const emptyDocument: JSONContent = { type: 'doc', content: [{ type: 'paragraph' }] };
   const slug = await uniqueSlug(
@@ -200,7 +213,8 @@ export async function setPostStatus(
   status: PostStatus,
   publishedAt?: Date | null,
 ): Promise<PostRow> {
-  await requireSiteAccess(siteId, userId);
+  // Publishing is what separates an author from an editor.
+  await requireCapability(siteId, userId, 'post:publish');
 
   const values: Partial<typeof posts.$inferInsert> = { status };
 
@@ -226,7 +240,7 @@ export async function setPostStatus(
 }
 
 export async function deletePost(siteId: string, postId: string, userId: string): Promise<void> {
-  await requireSiteAccess(siteId, userId, 'editor');
+  await requireCapability(siteId, userId, 'post:delete');
 
   await getDb()
     .delete(posts)

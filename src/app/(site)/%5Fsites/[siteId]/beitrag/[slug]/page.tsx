@@ -3,7 +3,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CommentForm } from '@/components/comments/comment-form';
 import { RenderedContent } from '@/components/editor/rendered-content';
+import { after } from 'next/server';
 import { listApprovedComments } from '@/lib/db/queries/comments';
+import { recordView } from '@/lib/db/queries/stats';
 import {
   getPostCategory,
   getPublicPostTags,
@@ -61,6 +63,11 @@ export default async function PublicPostPage({ params }: { params: Params }) {
     listApprovedComments(post.id),
   ]);
   const postTags = tagsByPost.get(post.id) ?? [];
+
+  // Counted after the response is sent, so a slow write never delays a reader.
+  after(async () => {
+    await recordView({ siteId, postId: post.id });
+  });
 
   // Structured data lets search engines read the article without guessing.
   const jsonLd = {

@@ -5,6 +5,7 @@ import { CategoryManager } from '@/components/taxonomies/category-manager';
 import { TagOverview } from '@/components/taxonomies/tag-overview';
 import { requireSession } from '@/lib/auth/session';
 import { getSiteForUser } from '@/lib/db/queries/sites';
+import { can } from '@/lib/sites/permissions';
 import { listCategories, listTags } from '@/lib/db/queries/taxonomies';
 
 export const metadata: Metadata = { title: 'Kategorien und Tags — webpresslite' };
@@ -14,7 +15,7 @@ export default async function TaxonomiesPage({ params }: { params: Promise<{ sit
   const { user } = await requireSession(`/sites/${siteId}/taxonomien`);
 
   const site = await getSiteForUser(siteId, user.id);
-  if (!site) notFound();
+  if (!site || !can(site.role, 'taxonomy:manage')) notFound();
 
   const [categories, tags] = await Promise.all([
     listCategories(siteId, user.id),

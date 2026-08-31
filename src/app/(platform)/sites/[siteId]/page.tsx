@@ -7,7 +7,9 @@ import { countPendingComments } from '@/lib/db/queries/comments';
 import { countPosts } from '@/lib/db/queries/posts';
 import { getSiteForUser } from '@/lib/db/queries/sites';
 import { getEnv } from '@/lib/env';
-import { roleAtLeast } from '@/lib/sites/roles';
+import { can } from '@/lib/sites/permissions';
+import { PLAN_LABELS } from '@/lib/sites/plans';
+import { ROLE_LABELS } from '@/lib/sites/roles';
 import { siteUrl } from '@/lib/tenant/host';
 
 export const metadata: Metadata = { title: 'Site — webpresslite' };
@@ -24,7 +26,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ sit
   const rootDomain = getEnv().ROOT_DOMAIN;
   const postCount = await countPosts(site.id, user.id);
   // Only editors and above may moderate, so the badge stays hidden for authors.
-  const pendingComments = roleAtLeast(site.role, 'editor')
+  const pendingComments = can(site.role, 'comment:moderate')
     ? await countPendingComments(site.id, user.id)
     : 0;
 
@@ -38,7 +40,8 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ sit
           <a href={siteUrl(site.subdomain, rootDomain)} className="font-mono hover:underline">
             {site.subdomain}.{rootDomain}
           </a>{' '}
-          · Rolle: <span data-testid="site-role">{site.role}</span> · Plan: {site.plan}
+          · Rolle: <span data-testid="site-role">{ROLE_LABELS[site.role]}</span> · Plan:{' '}
+          {PLAN_LABELS[site.plan]}
         </p>
       </header>
 
@@ -56,6 +59,66 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ sit
         </p>
       </section>
 
+      {can(site.role, 'stats:view') ? (
+        <section className="rounded-lg border p-6">
+          <h2 className="font-medium">Statistik</h2>
+          <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+            Aufrufe pro Tag und meistgelesene Beiträge.
+          </p>
+          <p className="mt-3 text-sm">
+            <Link href={`/sites/${site.id}/statistik`} className="underline underline-offset-4">
+              Statistik ansehen
+            </Link>
+          </p>
+        </section>
+      ) : null}
+
+      {can(site.role, 'site:members') ? (
+        <section className="rounded-lg border p-6">
+          <h2 className="font-medium">Team</h2>
+          <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+            Mitglieder einladen und Rollen vergeben.
+          </p>
+          <p className="mt-3 text-sm">
+            <Link href={`/sites/${site.id}/team`} className="underline underline-offset-4">
+              Team verwalten
+            </Link>
+          </p>
+        </section>
+      ) : null}
+
+      {can(site.role, 'site:domain') ? (
+        <section className="rounded-lg border p-6">
+          <h2 className="font-medium">Eigene Domain</h2>
+          <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+            {site.customDomain
+              ? site.domainVerifiedAt
+                ? `${site.customDomain} ist verifiziert.`
+                : `${site.customDomain} wartet auf die Verifizierung.`
+              : 'Noch keine eigene Domain hinterlegt.'}
+          </p>
+          <p className="mt-3 text-sm">
+            <Link href={`/sites/${site.id}/domain`} className="underline underline-offset-4">
+              Domain verwalten
+            </Link>
+          </p>
+        </section>
+      ) : null}
+
+      {can(site.role, 'site:plan') ? (
+        <section className="rounded-lg border p-6">
+          <h2 className="font-medium">Plan</h2>
+          <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+            Aktuell: {PLAN_LABELS[site.plan]}.
+          </p>
+          <p className="mt-3 text-sm">
+            <Link href={`/sites/${site.id}/plan`} className="underline underline-offset-4">
+              Plan ansehen
+            </Link>
+          </p>
+        </section>
+      ) : null}
+
       <section className="rounded-lg border p-6">
         <h2 className="font-medium">Kategorien und Tags</h2>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
@@ -68,19 +131,21 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ sit
         </p>
       </section>
 
-      <section className="rounded-lg border p-6">
-        <h2 className="font-medium">Kommentare</h2>
-        <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          {pendingComments === 0
-            ? 'Nichts wartet auf Freigabe.'
-            : `${pendingComments} ${pendingComments === 1 ? 'Kommentar wartet' : 'Kommentare warten'} auf Freigabe.`}
-        </p>
-        <p className="mt-3 text-sm">
-          <Link href={`/sites/${site.id}/kommentare`} className="underline underline-offset-4">
-            Kommentare moderieren
-          </Link>
-        </p>
-      </section>
+      {can(site.role, 'comment:moderate') ? (
+        <section className="rounded-lg border p-6">
+          <h2 className="font-medium">Kommentare</h2>
+          <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+            {pendingComments === 0
+              ? 'Nichts wartet auf Freigabe.'
+              : `${pendingComments} ${pendingComments === 1 ? 'Kommentar wartet' : 'Kommentare warten'} auf Freigabe.`}
+          </p>
+          <p className="mt-3 text-sm">
+            <Link href={`/sites/${site.id}/kommentare`} className="underline underline-offset-4">
+              Kommentare moderieren
+            </Link>
+          </p>
+        </section>
+      ) : null}
 
       <section className="rounded-lg border p-6">
         <h2 className="font-medium">Medien</h2>
@@ -94,19 +159,21 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ sit
         </p>
       </section>
 
-      <section className="rounded-lg border p-6">
-        <h2 className="font-medium">Design</h2>
-        <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          Theme, Farben, Schrift und Logo.
-        </p>
-        <p className="mt-3 text-sm">
-          <Link href={`/sites/${site.id}/design`} className="underline underline-offset-4">
-            Design anpassen
-          </Link>
-        </p>
-      </section>
+      {can(site.role, 'site:design') ? (
+        <section className="rounded-lg border p-6">
+          <h2 className="font-medium">Design</h2>
+          <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+            Theme, Farben, Schrift und Logo.
+          </p>
+          <p className="mt-3 text-sm">
+            <Link href={`/sites/${site.id}/design`} className="underline underline-offset-4">
+              Design anpassen
+            </Link>
+          </p>
+        </section>
+      ) : null}
 
-      {site.role === 'owner' ? (
+      {can(site.role, 'site:delete') ? (
         <section className="space-y-3">
           <h2 className="font-medium">Gefahrenzone</h2>
           <DeleteSiteForm siteId={site.id} subdomain={site.subdomain} />

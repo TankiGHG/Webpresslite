@@ -11,6 +11,7 @@ import { getPost } from '@/lib/db/queries/posts';
 import { getPostTags, listCategories } from '@/lib/db/queries/taxonomies';
 import { getSiteForUser } from '@/lib/db/queries/sites';
 import { getEnv } from '@/lib/env';
+import { can } from '@/lib/sites/permissions';
 import { siteUrl } from '@/lib/tenant/host';
 
 export const metadata: Metadata = { title: 'Bearbeiten — webpresslite' };
@@ -56,6 +57,7 @@ export default async function EditPostPage({
         <PublishPanel
           siteId={siteId}
           postId={post.id}
+          canPublish={can(site.role, 'post:publish')}
           status={post.status}
           publishedAt={post.publishedAt?.toISOString() ?? null}
           publicUrl={`${base}${path}`}
@@ -93,10 +95,12 @@ export default async function EditPostPage({
         </Link>
       </section>
 
-      <section className="space-y-3 border-t pt-6">
-        <h2 className="font-medium">Gefahrenzone</h2>
-        <DeletePostForm siteId={siteId} postId={post.id} />
-      </section>
+      {can(site.role, 'post:delete') ? (
+        <section className="space-y-3 border-t pt-6">
+          <h2 className="font-medium">Gefahrenzone</h2>
+          <DeletePostForm siteId={siteId} postId={post.id} />
+        </section>
+      ) : null}
     </div>
   );
 }

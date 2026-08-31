@@ -7,6 +7,7 @@ import { COMMENT_STATUSES, COMMENT_STATUS_LABELS } from '@/lib/comments/constant
 import type { CommentStatus } from '@/lib/comments/constants';
 import { commentCounts, listCommentsForModeration } from '@/lib/db/queries/comments';
 import { getSiteForUser } from '@/lib/db/queries/sites';
+import { can } from '@/lib/sites/permissions';
 
 export const metadata: Metadata = { title: 'Kommentare — webpresslite' };
 
@@ -28,7 +29,9 @@ export default async function CommentsPage({
   const { user } = await requireSession(`/sites/${siteId}/kommentare`);
 
   const site = await getSiteForUser(siteId, user.id);
-  if (!site) notFound();
+  // Checked before the queries run, so a member without the right gets a 404
+  // rather than an error page.
+  if (!site || !can(site.role, 'comment:moderate')) notFound();
 
   // Default view is what actually needs a decision.
   const status = parseStatus(rawStatus) ?? 'pending';

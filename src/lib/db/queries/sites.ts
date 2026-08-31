@@ -1,9 +1,11 @@
 import 'server-only';
 import { randomBytes } from 'node:crypto';
-import { and, asc, eq, or } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, or } from 'drizzle-orm';
 import { getDb } from '@/lib/db/client';
 import { siteMembers, sites, type SiteRow } from '@/lib/db/schema';
-import { roleAtLeast, type SiteRole } from '@/lib/sites/roles';
+import { can, type Capability } from '@/lib/sites/permissions';
+import { limitsFor } from '@/lib/sites/plans';
+import { roleAtLeast, type SitePlan, type SiteRole } from '@/lib/sites/roles';
 
 /**
  * Every function here takes the acting user and scopes its query to what that
@@ -62,6 +64,21 @@ export async function getSiteForUser(siteId: string, userId: string): Promise<Si
   return row ? { ...row.site, role: row.role } : null;
 }
 
+/**
+ * Guard for a specific capability. Prefer this over `requireSiteAccess` with a
+ * minimum role: it states what the caller is about to do, not how senior it
+ * must be to do it.
+ */
+export async function requireCapability(
+  siteId: string,
+  userId: string,
+  capability: Capability,
+): Promise<SiteWithRole> {
+  const site = await getSiteForUser(siteId, userId);
+  if (!site || !can(site.role, capability)) throw new SiteAccessError();
+  return site;
+}
+
 /** Same as `getSiteForUser`, but throws when the user has no access. */
 export async function requireSiteAccess(
   siteId: string,
@@ -85,7 +102,13 @@ export async function findSiteByHost(host: {
 }): Promise<Pick<SiteRow, 'id' | 'subdomain'> | null> {
   const conditions = [];
   if (host.subdomain) conditions.push(eq(sites.subdomain, host.subdomain));
-  if (host.customDomain) conditions.push(eq(sites.customDomain, host.customDomain));
+  if (host.customDomain) {
+    // An unverified domain must not resolve: otherwise anyone could point a
+    // hostname at the platform and have it serve somebody else's site.
+    conditions.push(
+      and(eq(sites.customDomain, host.customDomain), isNotNull(sites.domainVerifiedAt)),
+    );
+  }
   if (conditions.length === 0) return null;
 
   const rows = await getDb()
@@ -114,6 +137,13 @@ export interface CreateSiteInput {
 }
 
 /** Creates a site and makes the creator its owner, in one transaction. */
+export class PlanLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PlanLimitError';
+  }
+}
+
 export async function createSite(input: CreateSiteInput): Promise<SiteRow> {
   const id = newId();
 
@@ -163,6 +193,80 @@ export async function updateSiteTheme(input: UpdateSiteThemeInput): Promise<Site
   const site = updated[0];
   if (!site) throw new SiteAccessError();
   return site;
+}
+
+export class DomainError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DomainError';
+  }
+}
+
+/**
+ * Stores a custom domain and issues a fresh verification token. The domain is
+ * inactive until the TXT record has been confirmed.
+ */
+export async function setCustomDomain(input: {
+  siteId: string;
+  userId: string;
+  domain: string | null;
+}): Promise<SiteRow> {
+  const site = await requireCapability(input.siteId, input.userId, 'site:domain');
+
+  if (!limitsFor(site.plan).customDomain && input.domain) {
+    throw new DomainError('Custom Domains gibt es im Pro-Plan.');
+  }
+
+  if (input.domain) {
+    const taken = await getDb()
+      .select({ id: sites.id })
+      .from(sites)
+      .where(eq(sites.customDomain, input.domain))
+      .limit(1);
+
+    if (taken[0] && taken[0].id !== input.siteId) {
+      throw new DomainError('Diese Domain ist schon einer anderen Site zugeordnet.');
+    }
+  }
+
+  const updated = await getDb()
+    .update(sites)
+    .set({
+      customDomain: input.domain,
+      // A new domain always starts unverified with a new token.
+      domainVerificationToken: input.domain ? randomBytes(16).toString('hex') : null,
+      domainVerifiedAt: null,
+    })
+    .where(eq(sites.id, input.siteId))
+    .returning();
+
+  const row = updated[0];
+  if (!row) throw new SiteAccessError();
+  return row;
+}
+
+export async function markDomainVerified(siteId: string, userId: string): Promise<void> {
+  await requireCapability(siteId, userId, 'site:domain');
+
+  await getDb().update(sites).set({ domainVerifiedAt: new Date() }).where(eq(sites.id, siteId));
+}
+
+export async function setSitePlan(input: {
+  siteId: string;
+  userId: string;
+  plan: SitePlan;
+}): Promise<SiteRow> {
+  await requireCapability(input.siteId, input.userId, 'site:plan');
+
+  const updated = await getDb()
+    .update(sites)
+    .set({ plan: input.plan })
+    .where(eq(sites.id, input.siteId))
+    .returning();
+
+  const row = updated[0];
+  if (!row) throw new SiteAccessError();
+  return row;
 }
 
 /** Deletes a site. Only the owner may do this; members cascade away with it. */

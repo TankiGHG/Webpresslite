@@ -1,6 +1,6 @@
 import 'server-only';
 import { randomBytes } from 'node:crypto';
-import { and, desc, eq, isNotNull } from 'drizzle-orm';
+import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
 import { getDb } from '@/lib/db/client';
 import { media, posts, type MediaRow } from '@/lib/db/schema';
 import { mediaBaseUrl } from '@/lib/env';
@@ -8,7 +8,8 @@ import { isAllowedMimeType, validateUpload, type AllowedMimeType } from '@/lib/m
 import { mediaPrefix, originalKey, publicUrl, safeFileName, variantKey } from '@/lib/media/keys';
 import { processImage } from '@/lib/media/process';
 import { deletePrefix, getObjectBytes, presignUpload, putObject } from '@/lib/storage/objects';
-import { requireSiteAccess } from './sites';
+import { limitsFor } from '@/lib/sites/plans';
+import { PlanLimitError, requireCapability, requireSiteAccess } from './sites';
 
 export class MediaNotFoundError extends Error {
   constructor() {
@@ -74,6 +75,14 @@ export async function listMedia(siteId: string, userId: string): Promise<MediaIt
   return rows.map(toItem);
 }
 
+export async function countMedia(siteId: string, userId: string): Promise<number> {
+  await requireSiteAccess(siteId, userId);
+
+  const rows = await getDb().select({ value: count() }).from(media).where(eq(media.siteId, siteId));
+
+  return rows[0]?.value ?? 0;
+}
+
 export async function getMedia(
   siteId: string,
   mediaId: string,
@@ -108,7 +117,19 @@ export async function startUpload(input: {
   mimeType: string;
   size: number;
 }): Promise<StartUploadResult> {
-  await requireSiteAccess(input.siteId, input.userId);
+  const site = await requireCapability(input.siteId, input.userId, 'media:upload');
+
+  const used = await getDb()
+    .select({ value: count() })
+    .from(media)
+    .where(eq(media.siteId, input.siteId));
+
+  const limit = limitsFor(site.plan).mediaPerSite;
+  if ((used[0]?.value ?? 0) >= limit) {
+    throw new PlanLimitError(
+      `Der Plan ${site.plan} erlaubt ${limit} Medien pro Site. Wechsle zu Pro für mehr.`,
+    );
+  }
 
   const rejection = validateUpload({ mimeType: input.mimeType, size: input.size });
   if (rejection) throw new UploadRejectedError(rejection.reason);
@@ -218,7 +239,7 @@ export async function deleteMedia(input: {
   userId: string;
   mediaId: string;
 }): Promise<void> {
-  await requireSiteAccess(input.siteId, input.userId, 'editor');
+  await requireCapability(input.siteId, input.userId, 'media:delete');
 
   const rows = await getDb()
     .select({ id: media.id })

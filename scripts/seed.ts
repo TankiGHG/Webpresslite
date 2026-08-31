@@ -141,6 +141,54 @@ async function main() {
 
   await seedMedia(siteId, userId);
   await seedTaxonomiesAndComments(siteId, userId);
+  await seedPageViews(siteId);
+}
+
+/** Thirty days of view counts, so the statistics page has something to show. */
+async function seedPageViews(siteId: string) {
+  const { getDb } = await import('../src/lib/db/client');
+  const { pageViews, posts } = await import('../src/lib/db/schema');
+  const { and, eq } = await import('drizzle-orm');
+
+  const existing = await getDb()
+    .select({ day: pageViews.day })
+    .from(pageViews)
+    .where(eq(pageViews.siteId, siteId))
+    .limit(1);
+
+  if (existing.length > 0) {
+    console.info('Site already has view statistics.');
+    return;
+  }
+
+  const published = await getDb()
+    .select({ id: posts.id })
+    .from(posts)
+    .where(and(eq(posts.siteId, siteId), eq(posts.status, 'published')));
+
+  const rows: { siteId: string; postId: string | null; day: string; count: number }[] = [];
+
+  for (let offset = 29; offset >= 0; offset -= 1) {
+    const date = new Date();
+    date.setUTCDate(date.getUTCDate() - offset);
+    const day = date.toISOString().slice(0, 10);
+
+    // A gentle upward trend with weekday variation, so the chart is readable
+    // rather than a flat line of identical bars.
+    const base = 12 + Math.round((29 - offset) * 0.7);
+    const weekday = date.getUTCDay();
+    const weekend = weekday === 0 || weekday === 6 ? 0.6 : 1;
+
+    rows.push({ siteId, postId: null, day, count: Math.round(base * weekend) });
+
+    for (const [index, post] of published.entries()) {
+      const share = Math.round((base * weekend) / (index + 2));
+      if (share > 0) rows.push({ siteId, postId: post.id, day, count: share });
+    }
+  }
+
+  await getDb().insert(pageViews).values(rows);
+  console.info(`Created ${rows.length} view rows across 30 days.`);
 }
 
 /** One category, a few tags and one comment in each moderation state. */

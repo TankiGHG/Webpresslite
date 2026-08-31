@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   index,
+  date,
   integer,
   jsonb,
   pgEnum,
@@ -9,6 +10,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import type { JSONContent } from '@/lib/editor/types';
@@ -121,6 +123,9 @@ export const sites = pgTable(
     name: text('name').notNull(),
     subdomain: text('subdomain').notNull(),
     customDomain: text('custom_domain'),
+    /** Random value the owner publishes as a TXT record to prove ownership. */
+    domainVerificationToken: text('domain_verification_token'),
+    domainVerifiedAt: timestamp('domain_verified_at', { withTimezone: true, mode: 'date' }),
     ownerId: text('owner_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
@@ -151,6 +156,62 @@ export const siteMembers = pgTable(
   (table) => [
     primaryKey({ columns: [table.siteId, table.userId] }),
     index('site_members_user_id_idx').on(table.userId),
+  ],
+);
+
+// --- Team invitations --------------------------------------------------------
+
+export const siteInvitations = pgTable(
+  'site_invitations',
+  {
+    id: text('id').primaryKey(),
+    siteId: text('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    role: siteRole('role').notNull(),
+    /** Hashed, never stored in the clear — the mail carries the only copy. */
+    tokenHash: text('token_hash').notNull(),
+    invitedBy: text('invited_by')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true, mode: 'date' }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('site_invitations_token_unique').on(table.tokenHash),
+    index('site_invitations_site_idx').on(table.siteId),
+    index('site_invitations_email_idx').on(table.email),
+  ],
+);
+
+// --- Statistics --------------------------------------------------------------
+
+/**
+ * Aggregated on write: one row per site, post and day, incremented in place.
+ * No raw events are kept — the plan asks for reach, not for a trail of who
+ * read what.
+ */
+export const pageViews = pgTable(
+  'page_views',
+  {
+    siteId: text('site_id')
+      .notNull()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    postId: text('post_id').references(() => posts.id, { onDelete: 'cascade' }),
+    day: date('day').notNull(),
+    count: integer('count').notNull().default(0),
+  },
+  (table) => [
+    /**
+     * A unique index rather than a primary key: `post_id` is null for a view of
+     * the site itself, and a primary key column cannot be null. `nulls not
+     * distinct` (Postgres 15+) makes those null rows collide with each other,
+     * which is exactly what the upsert needs.
+     */
+    unique('page_views_key').on(table.siteId, table.day, table.postId).nullsNotDistinct(),
+    index('page_views_site_day_idx').on(table.siteId, table.day),
   ],
 );
 
@@ -337,6 +398,8 @@ export type MediaRow = typeof media.$inferSelect;
 export type CategoryRow = typeof categories.$inferSelect;
 export type TagRow = typeof tags.$inferSelect;
 export type CommentRow = typeof comments.$inferSelect;
+export type SiteInvitationRow = typeof siteInvitations.$inferSelect;
+export type PageViewRow = typeof pageViews.$inferSelect;
 export type { CommentStatus } from '@/lib/comments/constants';
 export type { PostStatus, PostType } from '@/lib/posts/constants';
 export type { SitePlan, SiteRole } from '@/lib/sites/roles';

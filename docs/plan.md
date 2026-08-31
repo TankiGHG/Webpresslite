@@ -100,12 +100,12 @@ responsiv ausgeliefert wird.
 
 **Fertig wenn:** ein Editor kann Beiträge schreiben, aber keine Site-Einstellungen ändern.
 
-- [ ] Einladungen per Mail
-- [ ] Rollen und Berechtigungsmatrix (owner/admin/editor/author)
-- [ ] Tabelle `page_views`, Tages-Aggregation
-- [ ] Statistik-Charts im Dashboard
-- [ ] Custom-Domain-Flow mit TXT-Verifizierung
-- [ ] Plan-Limits (free/pro) inkl. Enforcement, Payment als Stub
+- [x] Einladungen per Mail, an die eingeladene Adresse gebunden
+- [x] Rollen und Berechtigungsmatrix (owner/admin/editor/author), ausgeschrieben und angezeigt
+- [x] Tabelle `page_views`, beim Schreiben tagesweise aggregiert
+- [x] Statistik-Charts im Dashboard (Inline-SVG, mit Tabelle als Textalternative)
+- [x] Custom-Domain-Flow mit TXT-Verifizierung; unverifiziert wird nicht ausgeliefert
+- [x] Plan-Limits (free/pro) inkl. Enforcement, Payment als Stub
 
 ## Phase 8 — Deployment & Härtung
 

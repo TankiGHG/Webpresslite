@@ -414,3 +414,49 @@
     text-decoration: none;
   }
 }
+
+/* --- Statistics ------------------------------------------------------------
+   One series, so one hue. The steps come from the validated blue ramp: 450 on
+   the light surface, 400 on dark, both cleared for contrast against their
+   surface. */
+@layer components {
+  .stats-figure {
+    --stats-series: #2a78d6;
+    --stats-axis: #d9d9d4;
+    --stats-ink: #52514e;
+    margin: 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme='light'])) .stats-figure {
+      --stats-series: #3987e5;
+      --stats-axis: #3a3a37;
+      --stats-ink: #c3c2b7;
+    }
+  }
+
+  :root[data-theme='dark'] .stats-figure {
+    --stats-series: #3987e5;
+    --stats-axis: #3a3a37;
+    --stats-ink: #c3c2b7;
+  }
+
+  .stats-bar {
+    fill: var(--stats-series);
+  }
+
+  .stats-bar-empty {
+    fill: var(--stats-axis);
+  }
+
+  .stats-axis {
+    stroke: var(--stats-axis);
+    stroke-width: 1;
+  }
+
+  .stats-label {
+    fill: var(--stats-ink);
+    font-size: 11px;
+    font-family: inherit;
+  }
+}

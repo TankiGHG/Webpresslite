@@ -20,12 +20,14 @@ export function PublishPanel({
   status,
   publishedAt,
   publicUrl,
+  canPublish,
 }: {
   siteId: string;
   postId: string;
   status: PostStatus;
   publishedAt: string | null;
   publicUrl: string;
+  canPublish: boolean;
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     changePostStatusAction,
@@ -66,53 +68,59 @@ export function PublishPanel({
         </p>
       ) : null}
 
-      <form action={formAction} className="space-y-3">
-        <input type="hidden" name="siteId" value={siteId} />
-        <input type="hidden" name="postId" value={postId} />
+      {!canPublish ? (
+        <p className="text-sm text-[var(--color-muted-foreground)]" data-testid="cannot-publish">
+          Veröffentlichen übernimmt die Redaktion. Dein Entwurf ist gespeichert.
+        </p>
+      ) : (
+        <form action={formAction} className="space-y-3">
+          <input type="hidden" name="siteId" value={siteId} />
+          <input type="hidden" name="postId" value={postId} />
 
-        <div className="flex flex-wrap gap-2">
-          {status !== 'published' ? (
-            <Button type="submit" name="intent" value="publish" disabled={pending}>
-              Jetzt veröffentlichen
-            </Button>
-          ) : (
+          <div className="flex flex-wrap gap-2">
+            {status !== 'published' ? (
+              <Button type="submit" name="intent" value="publish" disabled={pending}>
+                Jetzt veröffentlichen
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                name="intent"
+                value="unpublish"
+                variant="outline"
+                disabled={pending}
+              >
+                Zurück zum Entwurf
+              </Button>
+            )}
+          </div>
+
+          <div className="space-y-1.5 border-t pt-3">
+            <Label htmlFor="scheduledFor">Später veröffentlichen</Label>
+            <Input
+              id="scheduledFor"
+              name="scheduledFor"
+              type="datetime-local"
+              defaultValue={defaultSchedule}
+              aria-invalid={state.errors?.scheduledFor ? true : undefined}
+              disabled={pending}
+            />
+            {state.errors?.scheduledFor ? (
+              <p className="text-sm text-red-700">{state.errors.scheduledFor}</p>
+            ) : null}
             <Button
               type="submit"
               name="intent"
-              value="unpublish"
+              value="schedule"
               variant="outline"
+              size="sm"
               disabled={pending}
             >
-              Zurück zum Entwurf
+              Veröffentlichung planen
             </Button>
-          )}
-        </div>
-
-        <div className="space-y-1.5 border-t pt-3">
-          <Label htmlFor="scheduledFor">Später veröffentlichen</Label>
-          <Input
-            id="scheduledFor"
-            name="scheduledFor"
-            type="datetime-local"
-            defaultValue={defaultSchedule}
-            aria-invalid={state.errors?.scheduledFor ? true : undefined}
-            disabled={pending}
-          />
-          {state.errors?.scheduledFor ? (
-            <p className="text-sm text-red-700">{state.errors.scheduledFor}</p>
-          ) : null}
-          <Button
-            type="submit"
-            name="intent"
-            value="schedule"
-            variant="outline"
-            size="sm"
-            disabled={pending}
-          >
-            Veröffentlichung planen
-          </Button>
-        </div>
-      </form>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

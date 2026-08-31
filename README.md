@@ -85,6 +85,8 @@ src/lib/posts/      Slugs und Beitrags-Vokabular
 src/lib/themes/     Theme-Definitionen und Anpassungen
 src/lib/media/      Upload-Regeln, Storage-Keys, sharp-Varianten
 src/lib/comments/   Kommentar-Validierung und Spam-Heuristik
+src/lib/domains/    Custom-Domain-Validierung und TXT-Verifizierung
+src/lib/billing/    Stub für einen Zahlungsanbieter
 src/lib/mail/       SMTP-Versand und Mail-Vorlagen
 src/lib/db/         Drizzle-Client, Schema, Queries
 src/lib/storage/    S3/MinIO-Client
@@ -235,6 +237,41 @@ die Rolle Redaktion hat.
 Spam-Schutz ohne Drittanbieter: ein Honeypot-Feld, ein Rate Limit von fünf
 Kommentaren je zehn Minuten und Adresse (nur gehasht gespeichert) sowie eine
 Heuristik, die offensichtlichen Spam direkt in die Spam-Queue schiebt.
+
+## Rollen und Team
+
+Jede Site hat vier Rollen. Die Matrix steht in `src/lib/sites/permissions.ts`
+und wird unter `Dashboard → Site → Team` angezeigt.
+
+| Rolle          | Kurz gesagt                                                          |
+| -------------- | -------------------------------------------------------------------- |
+| Autor:in       | schreibt eigene Beiträge, veröffentlicht nicht                       |
+| Redaktion      | veröffentlicht, moderiert, verwaltet Taxonomien, sieht die Statistik |
+| Administration | zusätzlich Design und Team                                           |
+| Eigentümer:in  | zusätzlich Domain, Plan und Löschen der Site                         |
+
+Eingeladen wird per Mail. Der Link funktioniert nur mit der eingeladenen
+Adresse — eine weitergeleitete Mail gibt niemandem Zugang.
+
+## Statistik
+
+Aufrufe werden beim Schreiben tagesweise aggregiert; Roh-Events werden nicht
+gespeichert. Die Zahlen sind daher Aufrufe, keine eindeutigen Besucher.
+
+## Eigene Domain
+
+Nur im Pro-Plan. Ablauf: Domain eintragen → TXT-Eintrag auf
+`_webpresslite.<domain>` setzen → prüfen lassen. Bis die Prüfung erfolgreich
+war, wird die Domain **nicht** ausgeliefert. Zusätzlich muss die Domain selbst
+per A- oder CNAME-Eintrag auf die Plattform zeigen.
+
+## Pläne
+
+Limits pro Site: Inhalte, Medien, Mitglieder, eigene Domain. Durchgesetzt wird
+in der Query-Schicht, nicht im UI.
+
+Es ist **kein Zahlungsanbieter** angebunden. Der Planwechsel läuft über
+`src/lib/billing/stub.ts`; es wird nichts berechnet.
 
 ## Tests
 

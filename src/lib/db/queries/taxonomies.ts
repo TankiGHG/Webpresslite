@@ -4,7 +4,7 @@ import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
 import { getDb } from '@/lib/db/client';
 import { categories, postTags, posts, tags, type CategoryRow, type TagRow } from '@/lib/db/schema';
 import { uniqueSlug } from '@/lib/posts/slug';
-import { requireSiteAccess } from './sites';
+import { requireCapability, requireSiteAccess } from './sites';
 
 export class TaxonomyNotFoundError extends Error {
   constructor() {
@@ -63,7 +63,7 @@ export async function createCategory(input: {
   name: string;
   description?: string | null;
 }): Promise<CategoryRow> {
-  await requireSiteAccess(input.siteId, input.userId, 'editor');
+  await requireCapability(input.siteId, input.userId, 'taxonomy:manage');
 
   const slug = await uniqueSlug(
     input.name,
@@ -92,7 +92,7 @@ export async function deleteCategory(input: {
   userId: string;
   categoryId: string;
 }): Promise<void> {
-  await requireSiteAccess(input.siteId, input.userId, 'editor');
+  await requireCapability(input.siteId, input.userId, 'taxonomy:manage');
 
   // Posts keep existing; they simply lose the category (`on delete set null`).
   const deleted = await getDb()
@@ -239,7 +239,7 @@ export async function setPostCategory(input: {
 
 /** Deletes tags that no post references any more. */
 export async function pruneUnusedTags(siteId: string, userId: string): Promise<number> {
-  await requireSiteAccess(siteId, userId, 'editor');
+  await requireCapability(siteId, userId, 'taxonomy:manage');
 
   const orphans = await getDb()
     .select({ id: tags.id, used: count(postTags.postId) })

@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { ThemeForm } from '@/components/themes/theme-form';
 import { requireSession } from '@/lib/auth/session';
 import { getSiteForUser } from '@/lib/db/queries/sites';
+import { can } from '@/lib/sites/permissions';
 import { getEnv } from '@/lib/env';
 import { siteUrl } from '@/lib/tenant/host';
 import { parseThemeSettings } from '@/lib/themes/settings';
@@ -15,7 +16,7 @@ export default async function DesignPage({ params }: { params: Promise<{ siteId:
   const { user } = await requireSession(`/sites/${siteId}/design`);
 
   const site = await getSiteForUser(siteId, user.id);
-  if (!site) notFound();
+  if (!site || !can(site.role, 'site:design')) notFound();
 
   const base = siteUrl(site.subdomain, getEnv().ROOT_DOMAIN);
 

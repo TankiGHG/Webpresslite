@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { publishDuePosts } from '@/lib/db/queries/posts';
 import { siteContentTag } from '@/lib/db/queries/public-sites';
 import { getEnv } from '@/lib/env';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,10 @@ export async function POST(request: NextRequest) {
   }
 
   const published = await publishDuePosts();
+
+  if (published.length > 0) {
+    logger.info('Published scheduled posts', { count: published.length });
+  }
 
   // Without this the freshly published post would sit behind a cached "not
   // found" until the cache entry expired on its own.

@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { requireSession } from '@/lib/auth/session';
+import { logger } from '@/lib/logger';
 import { fieldErrors } from '@/lib/auth/validation';
 import { createPost, deletePost, setPostStatus, updatePost } from '@/lib/db/queries/posts';
 import { siteContentTag } from '@/lib/db/queries/public-sites';
@@ -93,7 +94,7 @@ export async function savePostAction(input: {
   } catch (error) {
     if (error instanceof SiteAccessError) return { ok: false, error: 'Kein Zugriff.' };
     // The user gets a short message; the cause belongs in the server log.
-    console.error('[savePostAction] failed', error);
+    logger.error('Saving a post failed', { siteId: input.siteId, postId: input.postId, error });
     return { ok: false, error: 'Speichern fehlgeschlagen.' };
   }
 

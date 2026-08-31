@@ -273,6 +273,30 @@ in der Query-Schicht, nicht im UI.
 Es ist **kein Zahlungsanbieter** angebunden. Der Planwechsel läuft über
 `src/lib/billing/stub.ts`; es wird nichts berechnet.
 
+## Produktion
+
+Der komplette Betrieb steht in [`docs/betrieb.md`](docs/betrieb.md):
+Erstinstallation, Reverse-Proxy-Konfiguration, Updates, Backups und was zu tun
+ist, wenn etwas klemmt.
+
+Kurzfassung:
+
+```bash
+cp .env.example .env && $EDITOR .env
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Der Container wendet beim Start die Migrationen an und startet erst danach den
+Server. Die App lauscht nur auf `127.0.0.1`; davor gehört ein Reverse Proxy, der
+TLS terminiert und `X-Forwarded-Host` sowie `X-Forwarded-Proto` setzt.
+
+Backups:
+
+```bash
+./scripts/backup.sh                       # Datenbank und Medien
+./scripts/restore.sh ./backups/<stempel>  # zurückspielen
+```
+
 ## Tests
 
 ```bash

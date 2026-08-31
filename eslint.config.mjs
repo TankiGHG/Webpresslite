@@ -11,6 +11,8 @@ const config = [
   {
     ignores: [
       '.next/**',
+      // Bundled build output, not source.
+      'dist/**',
       'node_modules/**',
       'next-env.d.ts',
       'coverage/**',

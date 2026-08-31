@@ -1,6 +1,7 @@
 import 'server-only';
 import { createTransport, type Transporter } from 'nodemailer';
 import { getEnv } from '@/lib/env';
+import { logger } from '@/lib/logger';
 
 export interface MailMessage {
   to: string;
@@ -40,20 +41,29 @@ export async function sendMail(message: MailMessage): Promise<void> {
   const env = getEnv();
 
   if (!env.SMTP_HOST) {
-    console.info(
-      `[mail] SMTP_HOST is not set, logging instead of sending.\n` +
-        `  to:      ${message.to}\n` +
-        `  subject: ${message.subject}\n` +
-        `  body:    ${message.text}`,
-    );
+    // Local development without a mail server: the message goes to the log so
+    // links in it stay reachable. The recipient is redacted by the logger, so
+    // the body is printed separately and deliberately.
+    logger.warn('SMTP_HOST is not set, logging the mail instead of sending it', {
+      subject: message.subject,
+    });
+    console.info(`[mail] to: ${message.to}\n${message.text}`);
     return;
   }
 
-  await getTransport().sendMail({
-    from: env.SMTP_FROM,
-    to: message.to,
-    subject: message.subject,
-    text: message.text,
-    html: message.html,
-  });
+  try {
+    await getTransport().sendMail({
+      from: env.SMTP_FROM,
+      to: message.to,
+      subject: message.subject,
+      text: message.text,
+      html: message.html,
+    });
+    logger.info('Mail sent', { subject: message.subject });
+  } catch (error) {
+    // A failed mail must be visible in the log: the user only sees that the
+    // form succeeded, because whether a mail arrives is not their doing.
+    logger.error('Sending a mail failed', { subject: message.subject, error });
+    throw error;
+  }
 }

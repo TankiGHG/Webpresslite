@@ -111,10 +111,10 @@ responsiv ausgeliefert wird.
 
 **Fertig wenn:** ein frischer Server mit `docker compose up -d` und gepflegter `.env` läuft.
 
-- [ ] Multi-Stage-Dockerfile (`output: 'standalone'`)
-- [ ] `docker-compose.prod.yml`
-- [ ] Migrationen beim Start
-- [ ] Backup-Skript für DB und MinIO
-- [ ] Security-Header
-- [ ] Logging
-- [ ] Betriebsdokumentation
+- [x] Multi-Stage-Dockerfile (`output: 'standalone'`, unprivilegierter Nutzer)
+- [x] `docker-compose.prod.yml` (app, postgres, minio; nichts nach außen exponiert)
+- [x] Migrationen beim Start; schlägt sie fehl, startet der Container nicht
+- [x] Backup- und Restore-Skript für Datenbank und Objektspeicher
+- [x] Security-Header inkl. CSP mit Nonce je Anfrage
+- [x] Strukturiertes Logging mit Redaktion sensibler Felder
+- [x] Betriebsdokumentation (`docs/betrieb.md`)

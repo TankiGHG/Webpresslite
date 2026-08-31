@@ -38,6 +38,9 @@ pnpm start            # Standalone-Server aus dem Build
 pnpm db:generate      # Migration aus dem Schema erzeugen
 pnpm db:migrate       # Migrationen anwenden
 pnpm db:seed          # Entwicklungsdaten
+pnpm lighthouse       # Lighthouse gegen die öffentlichen Seiten
+pnpm build:migrate    # Migrations-Runner als eine Datei bündeln
+pnpm db:deploy        # Migrationen anwenden (Produktion, ohne drizzle-kit)
 docker compose -f docker-compose.dev.yml up -d   # Postgres + MinIO
 ```
 
@@ -61,6 +64,8 @@ Vor jedem Abschluss einer Phase muss durchlaufen:
   irgendwo sonst (Ausnahme: `next.config.ts`, `drizzle.config.ts`, Skripte).
 - **Caching.** Öffentliche Site-Seiten statisch mit `revalidateTag`,
   Invalidierung beim Publish/Update eines Beitrags.
+- **Sicherheitsheader** setzt die Anwendung selbst (Middleware), nicht der Proxy.
+  Die CSP trägt eine Nonce je Anfrage.
 - **Editor-Inhalte.** `content_json` ist die Quelle der Wahrheit, `content_html`
   ein serverseitig gerenderter und sanitizeter Cache. Der Client liefert nie HTML.
 

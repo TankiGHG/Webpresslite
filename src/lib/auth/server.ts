@@ -19,6 +19,16 @@ function create() {
     secret: env.AUTH_SECRET,
     database: drizzleAdapter(getDb(), { provider: 'pg', schema }),
 
+    // `input: false` keeps this out of sign-up/update-user payloads - it is
+    // set directly in the database by a platform admin, never by the user
+    // whose flag it is (see queries/platform-users.ts).
+    user: {
+      additionalFields: {
+        isPlatformAdmin: { type: 'boolean', input: false, defaultValue: false },
+        bannedAt: { type: 'date', input: false, required: false },
+      },
+    },
+
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 10,

@@ -9,7 +9,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <div className="min-h-dvh">
-      <AppHeader userName={user.name} sites={sites} />
+      <AppHeader userName={user.name} sites={sites} isPlatformAdmin={user.isPlatformAdmin} />
       <main className="mx-auto max-w-4xl px-6 py-10">{children}</main>
     </div>
   );

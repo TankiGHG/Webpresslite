@@ -16,7 +16,12 @@ export default async function SiteLayout({
 
   return (
     <div className="min-h-dvh">
-      <AppHeader userName={user.name} sites={sites} currentSiteId={siteId} />
+      <AppHeader
+        userName={user.name}
+        sites={sites}
+        currentSiteId={siteId}
+        isPlatformAdmin={user.isPlatformAdmin}
+      />
       <main className="mx-auto max-w-4xl px-6 py-10">{children}</main>
     </div>
   );

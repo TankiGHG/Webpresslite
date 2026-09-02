@@ -50,6 +50,8 @@ export const user = pgTable(
      * for the platform operator. See `getSiteForUser` in queries/sites.ts.
      */
     isPlatformAdmin: boolean('is_platform_admin').notNull().default(false),
+    /** Set by a platform admin. A banned user is signed out on their next request. */
+    bannedAt: timestamp('banned_at', { withTimezone: true, mode: 'date' }),
     ...timestamps,
   },
   (table) => [uniqueIndex('user_email_unique').on(table.email)],

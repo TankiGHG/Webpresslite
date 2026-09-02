@@ -6,10 +6,12 @@ export function AppHeader({
   userName,
   sites = [],
   currentSiteId,
+  isPlatformAdmin = false,
 }: {
   userName: string;
   sites?: SwitcherSite[];
   currentSiteId?: string;
+  isPlatformAdmin?: boolean;
 }) {
   return (
     <header className="border-b">
@@ -24,6 +26,14 @@ export function AppHeader({
           <Link href="/profile" className="text-[var(--color-muted-foreground)] hover:underline">
             Profil
           </Link>
+          {isPlatformAdmin ? (
+            <Link
+              href="/admin/users"
+              className="text-[var(--color-muted-foreground)] hover:underline"
+            >
+              Nutzerverwaltung
+            </Link>
+          ) : null}
           <SiteSwitcher sites={sites} currentSiteId={currentSiteId} />
         </nav>
         <div className="flex items-center gap-3">

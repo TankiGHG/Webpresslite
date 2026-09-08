@@ -174,6 +174,7 @@ Docker rotiert die Logs auf 5 × 10 MB je Container.
 | Symptom                          | Wahrscheinliche Ursache                                                     |
 | -------------------------------- | --------------------------------------------------------------------------- |
 | Alle Sites liefern 404           | `X-Forwarded-Host` fehlt im Proxy, oder `ROOT_DOMAIN` passt nicht           |
+| Nur Subdomains liefern 404       | `HOSTNAME=127.0.0.1` gesetzt — es muss `0.0.0.0` (Image-Standard) oder `localhost` sein |
 | `INVALID_ORIGIN` beim Anmelden   | `APP_URL` stimmt nicht mit der aufgerufenen Adresse überein                 |
 | Uploads scheitern sofort         | CORS am Bucket: `MINIO_CORS_ORIGINS` prüfen                                 |
 | Bilder laden nicht               | `NEXT_PUBLIC_MEDIA_URL` von außen nicht erreichbar                          |

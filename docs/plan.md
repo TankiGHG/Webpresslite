@@ -118,3 +118,16 @@ responsiv ausgeliefert wird.
 - [x] Security-Header inkl. CSP mit Nonce je Anfrage
 - [x] Strukturiertes Logging mit Redaktion sensibler Felder
 - [x] Betriebsdokumentation (`docs/betrieb.md`)
+
+## Phase 9 — Oberfläche
+
+**Fertig wenn:** jemand ohne Anleitung ein Konto anlegt, eine Site erstellt, einen Beitrag schreibt und ihn veröffentlicht — und dabei nichts verliert.
+
+- [x] Designsystem in `src/components/ui/` (Radix + Tailwind, Tokens in oklch, heller und dunkler Modus)
+- [x] Site-Shell mit Seitenleiste, Site-Wechsler und mobiler Navigation; Editor in voller Breite
+- [x] Landingpage, Auth-Seiten und Dashboard mit Leerzuständen und klaren nächsten Schritten
+- [x] Fünf Themes mit gerenderter Vorschau; Farbfelder zeigen die tatsächliche Theme-Farbe
+- [x] Editor: serialisierter Autosave, Speichern vor Veröffentlichen/Planen/Verlassen, `Strg+S`
+- [x] Seiten als eigener Bereich, Site-Einstellungen mit Untertitel (Migration 0008)
+- [x] Öffentliche Seiten: Auszüge, Lesezeit, Archiv nach Jahr, Suche mit markierten Treffern
+- [x] Screenshot-Durchgang auf Desktop und Handy, E2E-Suite grün (ADR 0012)

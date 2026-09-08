@@ -76,8 +76,10 @@ openssl rand -base64 32
 src/app/(platform)/ Dashboard und Auth
 src/app/(site)/     öffentliches Rendering pro Tenant
 src/app/            Next.js App Router
-src/components/ui/  shadcn/ui-Komponenten
+src/components/ui/  Grundbausteine (Button, Card, Dialog, Tabs …), shadcn-Muster
+src/components/     Bausteine je Bereich: platform (Shell, Navigation), editor, site …
 src/lib/env.ts      validierte Konfiguration
+src/lib/format.ts   Datum, Zahlen, Lesezeit — deutsch, ohne Abhängigkeit
 src/lib/auth/       better-auth Server, Client, Session-Helfer
 src/lib/tenant/     Host-Parsing, Reserved-List, Subdomain-Validierung
 src/lib/editor/     TipTap-Extensions, serverseitiges Rendering, Sanitizing
@@ -147,6 +149,11 @@ er erst, wenn er veröffentlicht **und** sein Zeitpunkt erreicht ist.
 - Beiträge: `https://<site>/beitrag/<slug>`
 - Seiten: `https://<site>/<slug>`
 
+Der Editor speichert von selbst (1,5 s nach der letzten Änderung) und wartet
+vor jedem Veröffentlichen, Planen oder Verlassen ab, bis alles geschrieben ist;
+`Strg+S` erzwingt es sofort. Name und Untertitel der Site — der Untertitel ist
+zugleich die Beschreibung für Suchmaschinen — stehen unter `Site → Einstellungen`.
+
 ### Geplante Beiträge
 
 Ein Scheduler muss regelmäßig — sinnvoll ist einmal pro Minute — folgendes
@@ -162,12 +169,18 @@ Der Aufruf ist idempotent; ohne fällige Beiträge passiert nichts. Ohne gesetzt
 
 ## Themes
 
-Jede Site nutzt eines von drei Themes — **Minimal**, **Journal**, **Kontrast** —
-und kann Akzentfarbe, Hintergrund, Textfarbe, Schriften und ein Logo überschreiben.
-Angepasst wird das unter `Dashboard → Site → Design`.
+Jede Site nutzt eines von fünf Themes — **Minimal**, **Journal**, **Editorial**,
+**Ozean**, **Kontrast** — und kann Akzentfarbe, Hintergrund, Textfarbe,
+Schriften und ein Logo überschreiben. Angepasst wird das unter
+`Site → Design`; jedes Theme hat dort eine gerenderte Vorschau.
 
 Ein Theme ist ein Satz `--site-*`-CSS-Variablen. Wer im Site-Bereich eine Farbe
 fest notiert statt eine Variable zu verwenden, bricht die Umschaltung.
+
+Die Plattform selbst (Dashboard, Editor) hat davon unabhängig einen hellen und
+einen dunklen Modus; die Wahl liegt im Nutzermenü und folgt sonst dem System.
+Die Bausteine dafür liegen in `src/components/ui/`, die Farb-Tokens in
+`src/app/globals.css` — siehe [ADR 0012](docs/adr/0012-ui-overhaul-and-editor-save-guarantees.md).
 
 ## SEO und Feeds
 
@@ -195,7 +208,7 @@ Kategorie scheitert lokal an `is-on-https`, weil ohne TLS gemessen wird.
 
 ## Medien
 
-Bilder werden unter `Dashboard → Site → Medien` verwaltet und im Editor über
+Bilder werden unter `Site → Medien` verwaltet und im Editor über
 `Bild` aus der Bibliothek eingefügt.
 
 Der Upload läuft in drei Schritten: der Server signiert eine PUT-URL, der
@@ -215,7 +228,7 @@ In Produktion gehören dort die echten Origins hinein, nicht `*`.
 ## Kategorien, Tags und Suche
 
 Ein Beitrag hat höchstens eine Kategorie und beliebig viele Tags. Kategorien
-werden unter `Dashboard → Site → Taxonomien` gepflegt; Tags entstehen beim
+werden unter `Site → Kategorien & Tags` gepflegt; Tags entstehen beim
 Schreiben, indem sie im Beitrag eingetragen werden.
 
 | Pfad                | Inhalt                                       |
@@ -231,7 +244,7 @@ Index entsprechen, sonst fällt Postgres auf einen sequentiellen Scan zurück.
 ## Kommentare
 
 Kommentare sind nach dem Absenden **immer** `pending` und erscheinen erst nach
-Freigabe unter `Dashboard → Site → Kommentare`. Moderieren darf, wer mindestens
+Freigabe unter `Site → Kommentare`. Moderieren darf, wer mindestens
 die Rolle Redaktion hat.
 
 Spam-Schutz ohne Drittanbieter: ein Honeypot-Feld, ein Rate Limit von fünf
@@ -241,7 +254,7 @@ Heuristik, die offensichtlichen Spam direkt in die Spam-Queue schiebt.
 ## Rollen und Team
 
 Jede Site hat vier Rollen. Die Matrix steht in `src/lib/sites/permissions.ts`
-und wird unter `Dashboard → Site → Team` angezeigt.
+und wird unter `Site → Team` angezeigt.
 
 | Rolle          | Kurz gesagt                                                          |
 | -------------- | -------------------------------------------------------------------- |
@@ -304,6 +317,11 @@ pnpm test                      # Vitest
 pnpm test:e2e                  # Playwright, startet den Build selbst
 E2E_BASE_URL=http://lvh.me:3000 pnpm test:e2e   # gegen laufenden Server
 ```
+
+Zwei E2E-Tests brauchen etwas von außen: der Medien-Test lädt `/tmp/testbild.jpg`
+hoch (ein beliebiges JPEG), und der Team-Test liest den Einladungslink aus dem
+Server-Log unter `/tmp/prod.log` — ohne `SMTP_HOST` schreibt die App jede Mail
+dorthin, wenn die Ausgabe des Servers in diese Datei geleitet wird.
 
 ## Lizenz
 

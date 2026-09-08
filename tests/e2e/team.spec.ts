@@ -29,7 +29,7 @@ async function inviteAndAccept(
 
   await owner.goto(`/sites/${siteId}/team`);
   await owner.getByLabel('E-Mail').fill(email);
-  await owner.getByLabel('Rolle').selectOption({ label: role });
+  await owner.getByLabel('Rolle', { exact: true }).selectOption({ label: role });
   await owner.getByRole('button', { name: 'Einladen' }).click();
   await expect(owner.getByText(`Einladung an ${email} verschickt.`)).toBeVisible();
 

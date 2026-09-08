@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test';
 
 test('the landing page renders', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'webpresslite' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Konto anlegen' }).first()).toBeVisible();
 });
 
 test('the health endpoint reports database and storage', async ({ request }) => {

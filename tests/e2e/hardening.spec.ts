@@ -45,7 +45,7 @@ test('the pages load with no policy violation', async ({ page }) => {
   page.on('pageerror', (error) => violations.push(`pageerror: ${String(error).slice(0, 200)}`));
 
   await page.goto('/dashboard');
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByTestId('session-email')).toBeVisible();
 
   expect(violations, violations.join('\n')).toHaveLength(0);
 });

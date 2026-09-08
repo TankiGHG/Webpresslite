@@ -89,6 +89,9 @@ test('the owner can delete a site and its subdomain stops resolving', async ({ p
 
   await page.goto('/dashboard');
   await page.getByRole('link', { name: 'Temporaere Site' }).click();
+  await page.waitForURL(/\/sites\/[^/]+$/);
+  // Deleting lives on the settings page, not on the site overview.
+  await page.goto(`${page.url()}/einstellungen`);
   await page.getByRole('button', { name: 'Site löschen' }).click();
   await page.getByLabel('Bestätigung').fill(subdomain);
   await page.getByRole('button', { name: 'Endgültig löschen' }).click();

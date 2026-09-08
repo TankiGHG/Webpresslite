@@ -20,6 +20,12 @@ async function register(page: Page, email: string, name = 'E2E Nutzer') {
   await page.waitForURL('**/dashboard');
 }
 
+/** Signing out lives in the account menu, so it takes two clicks. */
+async function signOut(page: Page) {
+  await page.getByTestId('user-menu').click();
+  await page.getByRole('menuitem', { name: 'Abmelden' }).click();
+}
+
 test('registration, login, protected page and logout', async ({ page }) => {
   const email = uniqueEmail();
 
@@ -28,7 +34,7 @@ test('registration, login, protected page and logout', async ({ page }) => {
   await expect(page.getByTestId('session-email')).toHaveText(email);
 
   // Log out -> the protected page must no longer be reachable.
-  await page.getByRole('button', { name: 'Abmelden' }).click();
+  await signOut(page);
   await page.waitForURL('**/login');
 
   await page.goto('/dashboard');
@@ -51,7 +57,7 @@ test('wrong password is rejected without revealing whether the account exists', 
 }) => {
   const email = uniqueEmail();
   await register(page, email);
-  await page.getByRole('button', { name: 'Abmelden' }).click();
+  await signOut(page);
   await page.waitForURL('**/login');
 
   await page.getByLabel('E-Mail').fill(email);

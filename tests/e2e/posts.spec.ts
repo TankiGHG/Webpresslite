@@ -52,6 +52,24 @@ test('a post is written, autosaved, published and served publicly', async ({ pag
   await expect(page.getByTestId('published-list')).toContainText('Mein erster Beitrag');
 });
 
+test('publishing right after typing ships the text that was not saved yet', async ({ page }) => {
+  const { siteId, subdomain } = await siteWith(page, `Eilig ${unique('')}`);
+  await createPost(page, siteId, 'Sofort live');
+
+  // Retitle first, then type: the body save must not revert the title.
+  await page.getByRole('textbox', { name: 'Titel', exact: true }).fill('Sofort live, neu');
+  await page.locator('.prose-editor').click();
+  await page.keyboard.type('Noch nicht gespeicherter Text.');
+
+  // No waiting for the autosave — publishing has to flush it itself.
+  await page.getByRole('button', { name: 'Jetzt veröffentlichen' }).click();
+  await expect(page.getByTestId('post-status')).toHaveAttribute('data-status', 'published');
+
+  await page.goto(`http://${subdomain}.${ROOT_DOMAIN}/beitrag/sofort-live`);
+  await expect(page.getByTestId('post-title')).toHaveText('Sofort live, neu');
+  await expect(page.getByTestId('post-content')).toContainText('Noch nicht gespeicherter Text.');
+});
+
 test('the preview shows a draft that is not public yet', async ({ page }) => {
   const { siteId, subdomain } = await siteWith(page, `Vorschau ${unique('')}`);
   const postId = await createPost(page, siteId, 'Nur ein Entwurf');

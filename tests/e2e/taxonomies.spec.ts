@@ -58,13 +58,13 @@ test('a category and tags drive their archive pages', async ({ page }) => {
   await expect(page.getByTestId('post-taxonomies')).toContainText('Reisen');
   await expect(page.getByTestId('post-taxonomies')).toContainText('#Norden');
 
-  await page.getByRole('link', { name: 'Reisen' }).click();
+  await page.getByTestId('post-taxonomies').getByRole('link', { name: 'Reisen' }).click();
   await expect(page).toHaveURL(`${base}/kategorie/reisen`);
   await expect(page.getByTestId('archive-title')).toHaveText('Reisen');
   await expect(page.getByTestId('published-list')).toContainText('Ein Wochenende in Bremen');
 
   await page.goto(`${base}/tag/norden`);
-  await expect(page.getByTestId('archive-title')).toHaveText('Tag: Norden');
+  await expect(page.getByTestId('archive-title')).toHaveText('#Norden');
   await expect(page.getByTestId('published-list')).toContainText('Ein Wochenende in Bremen');
 });
 

@@ -10,8 +10,8 @@ import {
 import { parseThemeSettings, themeSettingsSchema, themeStyle } from '@/lib/themes/settings';
 
 describe('theme definitions', () => {
-  it('defines exactly the three themes from the plan', () => {
-    expect(THEME_IDS).toHaveLength(3);
+  it('defines the five built-in themes', () => {
+    expect(THEME_IDS).toHaveLength(5);
     for (const id of THEME_IDS) expect(THEMES[id].id).toBe(id);
   });
 

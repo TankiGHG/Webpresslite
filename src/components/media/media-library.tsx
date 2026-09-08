@@ -19,15 +19,17 @@ export function MediaLibrary({ siteId, initial }: { siteId: string; initial: Med
   );
 
   return (
-    <div className="space-y-8">
-      <UploadButton
-        siteId={siteId}
-        onUploaded={(item) => {
-          setItems((current) => [item, ...current]);
-          // Keeps the server rendered list in step with what we just added.
-          router.refresh();
-        }}
-      />
+    <div className="space-y-6">
+      <div className="bg-card rounded-xl border p-4 shadow-[var(--shadow-card)] sm:p-5">
+        <UploadButton
+          siteId={siteId}
+          onUploaded={(item) => {
+            setItems((current) => [item, ...current]);
+            // Keeps the server rendered list in step with what we just added.
+            router.refresh();
+          }}
+        />
+      </div>
 
       <MediaGrid siteId={siteId} items={items} onDeleted={handleDeleted} />
     </div>

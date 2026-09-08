@@ -1,8 +1,10 @@
 'use client';
 
+import { ImageIcon, Trash2 } from 'lucide-react';
 import { useActionState, useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { deleteMediaAction, updateAltAction, type ActionState } from '@/lib/actions/media';
@@ -21,25 +23,27 @@ function AltForm({ siteId, item }: { siteId: string; item: MediaItem }) {
         <Label htmlFor={`alt-${item.id}`} className="text-xs">
           Alt-Text
         </Label>
-        <Input
-          id={`alt-${item.id}`}
-          name="alt"
-          defaultValue={item.alt ?? ''}
-          placeholder="Was ist auf dem Bild zu sehen?"
-          aria-invalid={state.errors?.alt ? true : undefined}
-        />
+        <div className="flex gap-2">
+          <Input
+            id={`alt-${item.id}`}
+            name="alt"
+            defaultValue={item.alt ?? ''}
+            placeholder="Was ist auf dem Bild zu sehen?"
+            aria-invalid={state.errors?.alt ? true : undefined}
+            className="h-8 text-sm"
+          />
+          <Button type="submit" size="sm" variant="outline" loading={pending}>
+            {pending ? 'Speichert…' : 'Alt-Text speichern'}
+          </Button>
+        </div>
       </div>
 
-      {state.errors?.alt ? <p className="text-xs text-red-700">{state.errors.alt}</p> : null}
+      {state.errors?.alt ? <p className="text-danger text-xs">{state.errors.alt}</p> : null}
       {state.saved ? (
-        <p className="text-xs text-green-700" role="status">
+        <p className="text-success text-xs" role="status">
           Gespeichert.
         </p>
       ) : null}
-
-      <Button type="submit" size="sm" variant="outline" disabled={pending}>
-        {pending ? 'Speichert…' : 'Alt-Text speichern'}
-      </Button>
     </form>
   );
 }
@@ -70,8 +74,9 @@ function DeleteForm({
       {state.formError ? <Alert>{state.formError}</Alert> : null}
 
       {confirming ? (
-        <div className="flex gap-2">
-          <Button type="submit" size="sm" disabled={pending}>
+        <div className="bg-danger-soft flex items-center gap-2 rounded-lg px-3 py-2">
+          <span className="text-danger text-xs">Das Bild verschwindet auch aus Beiträgen.</span>
+          <Button type="submit" size="sm" variant="danger" loading={pending} className="ml-auto">
             {pending ? 'Löscht…' : 'Wirklich löschen'}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={() => setConfirming(false)}>
@@ -79,7 +84,14 @@ function DeleteForm({
           </Button>
         </div>
       ) : (
-        <Button type="button" size="sm" variant="ghost" onClick={() => setConfirming(true)}>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="text-danger hover:text-danger"
+          onClick={() => setConfirming(true)}
+        >
+          <Trash2 />
           Löschen
         </Button>
       )}
@@ -98,37 +110,50 @@ export function MediaGrid({
 }) {
   if (items.length === 0) {
     return (
-      <p className="text-sm text-[var(--color-muted-foreground)]" data-testid="no-media">
-        Noch keine Bilder hochgeladen.
-      </p>
+      <EmptyState
+        icon={ImageIcon}
+        title="Noch keine Bilder"
+        description="Lade oben ein Bild hoch — du kannst es danach in jeden Beitrag einfügen oder als Titelbild wählen."
+        data-testid="no-media"
+      />
     );
   }
 
   return (
-    <ul className="grid gap-6 sm:grid-cols-2" data-testid="media-grid">
+    <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="media-grid">
       {items.map((item) => (
-        <li key={item.id} className="space-y-3 rounded-lg border p-4" data-media-id={item.id}>
-          {/* Variants come from our own storage; next/image would add a second
-              resizing step on top of the ones sharp already produced. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={item.urls.thumb}
-            alt={item.alt ?? ''}
-            width={item.width ?? undefined}
-            height={item.height ?? undefined}
-            loading="lazy"
-            className="h-40 w-full rounded border object-contain"
-          />
-
-          <div className="text-xs text-[var(--color-muted-foreground)]">
-            <p className="truncate font-medium text-[var(--color-foreground)]">{item.fileName}</p>
-            <p>
-              {item.width}×{item.height} · {formatBytes(item.size)} · {item.mime}
-            </p>
+        <li
+          key={item.id}
+          className="bg-card flex flex-col overflow-hidden rounded-xl border shadow-[var(--shadow-card)]"
+          data-media-id={item.id}
+        >
+          <div className="bg-muted grid aspect-[4/3] place-items-center">
+            {/* Variants come from our own storage; next/image would add a second
+                resizing step on top of the ones sharp already produced. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={item.urls.thumb}
+              alt={item.alt ?? ''}
+              width={item.width ?? undefined}
+              height={item.height ?? undefined}
+              loading="lazy"
+              className="size-full object-contain"
+            />
           </div>
 
-          <AltForm siteId={siteId} item={item} />
-          <DeleteForm siteId={siteId} item={item} onDeleted={onDeleted} />
+          <div className="space-y-3 p-4">
+            <div className="text-muted-foreground text-xs">
+              <p className="text-foreground truncate font-medium" title={item.fileName}>
+                {item.fileName}
+              </p>
+              <p className="tabular-nums">
+                {item.width}×{item.height} · {formatBytes(item.size)} · {item.mime}
+              </p>
+            </div>
+
+            <AltForm siteId={siteId} item={item} />
+            <DeleteForm siteId={siteId} item={item} onDeleted={onDeleted} />
+          </div>
         </li>
       ))}
     </ul>

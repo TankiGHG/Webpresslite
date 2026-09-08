@@ -100,6 +100,14 @@ export function ViewsChart({ data }: { data: DailyViews[] }) {
         })}
       </svg>
 
+      {total === 0 ? (
+        // An empty plot reads as broken; say what it is waiting for. HTML
+        // rather than SVG text, which the stretched viewBox would distort.
+        <p className="stats-empty" aria-hidden>
+          Noch keine Aufrufe im Zeitraum
+        </p>
+      ) : null}
+
       <figcaption className="sr-only">
         Balkendiagramm der täglichen Seitenaufrufe über {data.length} Tage.
       </figcaption>

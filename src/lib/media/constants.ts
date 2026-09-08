@@ -47,7 +47,9 @@ export type VariantName = (typeof VARIANTS)[number]['name'];
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  // German decimal comma; whole megabytes drop the fraction ("10 MB", "1,5 MB").
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MB`;
 }
 
 export interface UploadRejection {

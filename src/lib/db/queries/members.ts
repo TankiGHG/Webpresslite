@@ -70,6 +70,17 @@ export async function listMembers(siteId: string, userId: string): Promise<Membe
   }));
 }
 
+export async function countMembers(siteId: string, userId: string): Promise<number> {
+  await requireCapability(siteId, userId, 'site:members');
+
+  const rows = await getDb()
+    .select({ value: count() })
+    .from(siteMembers)
+    .where(eq(siteMembers.siteId, siteId));
+
+  return rows[0]?.value ?? 0;
+}
+
 export interface PendingInvitation {
   id: string;
   email: string;

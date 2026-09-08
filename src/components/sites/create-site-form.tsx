@@ -68,7 +68,7 @@ export function CreateSiteForm({ rootDomain }: { rootDomain: string }) {
             setSubdomain(event.target.value);
           }}
         />
-        <p className="text-xs text-[var(--color-muted-foreground)]">
+        <p className="text-muted-foreground text-xs">
           Deine Site erscheint unter{' '}
           <span className="font-mono">
             {subdomain || 'name'}.{rootDomain}
@@ -76,7 +76,7 @@ export function CreateSiteForm({ rootDomain }: { rootDomain: string }) {
         </p>
         {availability.state === 'result' ? (
           <p
-            className={`text-xs ${availability.ok ? 'text-green-700' : 'text-red-700'}`}
+            className={`text-xs ${availability.ok ? 'text-success' : 'text-danger'}`}
             data-testid="subdomain-availability"
           >
             {availability.text}
@@ -84,7 +84,7 @@ export function CreateSiteForm({ rootDomain }: { rootDomain: string }) {
         ) : null}
       </div>
 
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" loading={pending} className="w-full">
         {pending ? 'Site wird angelegt…' : 'Site anlegen'}
       </Button>
     </form>

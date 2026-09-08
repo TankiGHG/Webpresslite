@@ -1,9 +1,11 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { Alert } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { Field } from '@/components/auth/field';
+import { Alert } from '@/components/ui/alert';
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   deleteUserAction,
   setPlatformAdminAction,
@@ -18,14 +20,22 @@ function DeleteUserForm({ user }: { user: PlatformUserRow }) {
 
   if (!open) {
     return (
-      <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-danger hover:bg-danger-soft hover:text-danger"
+        onClick={() => setOpen(true)}
+      >
         Löschen
       </Button>
     );
   }
 
   return (
-    <form action={formAction} className="w-full space-y-3 rounded-md border border-red-200 p-4">
+    <form
+      action={formAction}
+      className="border-danger/40 bg-danger-soft/40 w-full space-y-3 rounded-lg border p-4"
+    >
       <input type="hidden" name="userId" value={user.id} />
       <input type="hidden" name="email" value={user.email} />
 
@@ -44,10 +54,16 @@ function DeleteUserForm({ user }: { user: PlatformUserRow }) {
         <span className="font-mono">{user.email}</span> ein.
       </p>
 
-      <Field label="Bestätigung" name="confirmation" autoComplete="off" required disabled={pending} />
+      <Field
+        label="Bestätigung"
+        name="confirmation"
+        autoComplete="off"
+        required
+        disabled={pending}
+      />
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" variant="danger" loading={pending}>
           {pending ? 'Wird gelöscht…' : 'Endgültig löschen'}
         </Button>
         <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
@@ -71,28 +87,24 @@ function UserRow({ user, isSelf }: { user: PlatformUserRow; isSelf: boolean }) {
   const banned = Boolean(user.bannedAt);
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" data-testid="platform-user">
-      <div className="min-w-0">
-        <p className="font-medium">
-          {user.name}
-          {isSelf ? (
-            <span className="ml-2 rounded-full border px-2 py-0.5 text-xs font-normal">Du</span>
-          ) : null}
-          {user.isPlatformAdmin ? (
-            <span className="ml-2 rounded-full border px-2 py-0.5 text-xs font-normal">
-              Platform-Admin
-            </span>
-          ) : null}
-          {banned ? (
-            <span className="ml-2 rounded-full border border-red-300 px-2 py-0.5 text-xs font-normal text-red-700">
-              Gesperrt
-            </span>
-          ) : null}
-        </p>
-        <p className="truncate text-xs text-[var(--color-muted-foreground)]">
-          {user.email} · {user.ownedSiteCount}{' '}
-          {user.ownedSiteCount === 1 ? 'eigene Site' : 'eigene Sites'}
-        </p>
+    <li
+      className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5"
+      data-testid="platform-user"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar name={user.name} seed={user.email} />
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-center gap-2 font-medium">
+            {user.name}
+            {isSelf ? <Badge variant="outline">Du</Badge> : null}
+            {user.isPlatformAdmin ? <Badge variant="primary">Platform-Admin</Badge> : null}
+            {banned ? <Badge variant="danger">Gesperrt</Badge> : null}
+          </p>
+          <p className="text-muted-foreground truncate text-xs">
+            {user.email} · {user.ownedSiteCount}{' '}
+            {user.ownedSiteCount === 1 ? 'eigene Site' : 'eigene Sites'}
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -140,7 +152,10 @@ export function UserManager({
 }) {
   return (
     <section className="space-y-3">
-      <ul className="divide-y rounded-lg border" data-testid="platform-user-list">
+      <ul
+        className="bg-card divide-y rounded-xl border shadow-[var(--shadow-card)]"
+        data-testid="platform-user-list"
+      >
         {users.map((user) => (
           <UserRow key={user.id} user={user} isSelf={user.id === currentUserId} />
         ))}

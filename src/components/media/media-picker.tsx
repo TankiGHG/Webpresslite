@@ -1,8 +1,17 @@
 'use client';
 
+import { ImageIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { UploadButton } from './upload-button';
-import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
 import { listMediaAction } from '@/lib/actions/media';
 import { formatBytes } from '@/lib/media/constants';
 import type { MediaItem } from '@/lib/db/queries/media';
@@ -12,11 +21,13 @@ export function MediaPicker({
   open,
   onClose,
   onSelect,
+  title = 'Bild einfügen',
 }: {
   siteId: string;
   open: boolean;
   onClose: () => void;
   onSelect: (item: MediaItem) => void;
+  title?: string;
 }) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -32,92 +43,83 @@ export function MediaPicker({
     if (open) void reload();
   }, [open, reload]);
 
-  // Escape closes the dialog, as a dialog is expected to.
-  useEffect(() => {
-    if (!open) return;
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Medienbibliothek"
-        data-testid="media-picker"
-        className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-lg border bg-[var(--color-background)] p-6 shadow-lg"
-      >
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold">Bild einfügen</h2>
-            <p className="text-sm text-[var(--color-muted-foreground)]">
-              Aus der Bibliothek wählen oder ein neues Bild hochladen.
-            </p>
+    <Dialog open={open} onOpenChange={(next) => (next ? undefined : onClose())}>
+      <DialogContent size="xl" aria-label="Medienbibliothek" data-testid="media-picker">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            Aus der Bibliothek wählen oder ein neues Bild hochladen.
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogBody className="pb-6">
+          <div className="mb-5">
+            <UploadButton
+              siteId={siteId}
+              label="Neues Bild hochladen"
+              variant="outline"
+              onUploaded={(item) => {
+                setItems((current) => [item, ...current]);
+                onSelect(item);
+                onClose();
+              }}
+            />
           </div>
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-            Schließen
-          </Button>
-        </div>
 
-        <div className="mb-6">
-          <UploadButton
-            siteId={siteId}
-            label="Neues Bild hochladen"
-            onUploaded={(item) => {
-              setItems((current) => [item, ...current]);
-              onSelect(item);
-              onClose();
-            }}
-          />
-        </div>
-
-        {loading ? (
-          <p className="text-sm text-[var(--color-muted-foreground)]">Wird geladen…</p>
-        ) : items.length === 0 ? (
-          <p className="text-sm text-[var(--color-muted-foreground)]" data-testid="picker-empty">
-            Die Bibliothek ist noch leer.
-          </p>
-        ) : (
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid="picker-grid">
-            {items.map((item) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  data-testid="picker-item"
-                  onClick={() => {
-                    onSelect(item);
-                    onClose();
-                  }}
-                  className="w-full rounded border p-2 text-left transition-colors hover:bg-[var(--color-muted)]"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={item.urls.thumb}
-                    alt={item.alt ?? ''}
-                    loading="lazy"
-                    className="h-24 w-full rounded object-contain"
-                  />
-                  <span className="mt-1 block truncate text-xs">{item.fileName}</span>
-                  <span className="block text-xs text-[var(--color-muted-foreground)]">
-                    {formatBytes(item.size)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
+          {loading ? (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4" aria-busy="true">
+              {Array.from({ length: 8 }, (_, index) => (
+                <li key={index} className="bg-muted/60 aspect-square rounded-lg" />
+              ))}
+            </ul>
+          ) : items.length === 0 ? (
+            <EmptyState
+              compact
+              icon={ImageIcon}
+              title="Die Bibliothek ist noch leer"
+              description="Lade ein Bild hoch – es wird direkt eingefügt."
+              data-testid="picker-empty"
+            />
+          ) : (
+            <ul
+              className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"
+              data-testid="picker-grid"
+            >
+              {items.map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    data-testid="picker-item"
+                    onClick={() => {
+                      onSelect(item);
+                      onClose();
+                    }}
+                    className="group bg-card hover:border-primary/60 focus-visible:ring-ring w-full overflow-hidden rounded-lg border text-left transition-[border-color,box-shadow] outline-none hover:shadow-xs focus-visible:ring-[3px]"
+                  >
+                    <span className="bg-muted block aspect-square overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={item.urls.thumb}
+                        alt={item.alt ?? ''}
+                        loading="lazy"
+                        className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      />
+                    </span>
+                    <span className="block px-2.5 py-2">
+                      <span className="block truncate text-xs font-medium">{item.fileName}</span>
+                      <span className="text-muted-foreground block text-[0.6875rem]">
+                        {item.width && item.height ? `${item.width} × ${item.height} · ` : ''}
+                        {formatBytes(item.size)}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }

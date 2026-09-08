@@ -1,5 +1,6 @@
 'use client';
 
+import { Upload } from 'lucide-react';
 import { useRef } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -11,10 +12,12 @@ export function UploadButton({
   siteId,
   onUploaded,
   label = 'Bild hochladen',
+  variant = 'default',
 }: {
   siteId: string;
   onUploaded: (item: MediaItem) => void;
   label?: string;
+  variant?: 'default' | 'outline';
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { status, upload } = useUpload(siteId, onUploaded);
@@ -36,15 +39,21 @@ export function UploadButton({
         }}
       />
 
-      <div className="flex items-center gap-3">
-        <Button type="button" disabled={busy} onClick={() => inputRef.current?.click()}>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          type="button"
+          variant={variant}
+          loading={busy}
+          onClick={() => inputRef.current?.click()}
+        >
+          {busy ? null : <Upload />}
           {status.state === 'uploading'
             ? 'Wird hochgeladen…'
             : status.state === 'processing'
               ? 'Wird verarbeitet…'
               : label}
         </Button>
-        <span className="text-xs text-[var(--color-muted-foreground)]">
+        <span className="text-muted-foreground text-xs">
           JPEG, PNG, WebP, AVIF oder GIF, bis {formatBytes(MAX_UPLOAD_BYTES)}
         </span>
       </div>

@@ -1,10 +1,15 @@
 'use client';
 
+import { Mail, Send, UserMinus, X } from 'lucide-react';
 import { useActionState } from 'react';
 import { Field } from '@/components/auth/field';
 import { Alert } from '@/components/ui/alert';
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import {
   changeRoleAction,
   inviteMemberAction,
@@ -13,6 +18,7 @@ import {
   type ActionState,
 } from '@/lib/actions/members';
 import type { Member, PendingInvitation } from '@/lib/db/queries/members';
+import { formatDate } from '@/lib/format';
 import { ROLE_LABELS, type SiteRole } from '@/lib/sites/roles';
 
 function RoleSelect({
@@ -20,25 +26,28 @@ function RoleSelect({
   defaultValue,
   options,
   id,
+  ariaLabel,
 }: {
   name: string;
   defaultValue?: SiteRole;
   options: SiteRole[];
   id?: string;
+  ariaLabel?: string;
 }) {
   return (
-    <select
+    <Select
       id={id}
       name={name}
       defaultValue={defaultValue ?? options[0]}
-      className="h-9 rounded-md border bg-transparent px-2 text-sm"
+      aria-label={ariaLabel}
+      className="w-40"
     >
       {options.map((role) => (
         <option key={role} value={role}>
           {ROLE_LABELS[role]}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }
 
@@ -61,34 +70,33 @@ function MemberRow({
   );
 
   return (
-    <li
-      className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
-      data-testid="member"
-    >
-      <div className="min-w-0">
-        <p className="font-medium">
-          {member.name}
-          {member.isOwner ? (
-            <span className="ml-2 rounded-full border px-2 py-0.5 text-xs font-normal">
-              {ROLE_LABELS.owner}
-            </span>
-          ) : null}
+    <li className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-5" data-testid="member">
+      <Avatar name={member.name} seed={member.email} />
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-2 font-medium">
+          <span className="truncate">{member.name}</span>
+          {member.isOwner ? <Badge variant="primary">{ROLE_LABELS.owner}</Badge> : null}
         </p>
-        <p className="truncate text-xs text-[var(--color-muted-foreground)]">{member.email}</p>
+        <p className="text-muted-foreground truncate text-xs">{member.email}</p>
       </div>
 
-      {member.isOwner || assignable.length === 0 ? (
-        <span className="text-sm text-[var(--color-muted-foreground)]">
-          {ROLE_LABELS[member.role]}
-        </span>
+      {member.isOwner ? (
+        // The badge next to the name already says it; nothing to change here.
+        <span className="text-muted-foreground text-xs">Kann nicht geändert werden</span>
+      ) : assignable.length === 0 ? (
+        <span className="text-muted-foreground text-sm">{ROLE_LABELS[member.role]}</span>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           <form action={roleAction} className="flex items-center gap-2">
             <input type="hidden" name="siteId" value={siteId} />
             <input type="hidden" name="memberId" value={member.userId} />
-            <span className="sr-only">Rolle von {member.name}</span>
-            <RoleSelect name="role" defaultValue={member.role} options={assignable} />
-            <Button type="submit" size="sm" variant="outline" disabled={rolePending}>
+            <RoleSelect
+              name="role"
+              defaultValue={member.role}
+              options={assignable}
+              ariaLabel={`Rolle von ${member.name}`}
+            />
+            <Button type="submit" size="sm" variant="outline" loading={rolePending}>
               Rolle setzen
             </Button>
           </form>
@@ -96,7 +104,14 @@ function MemberRow({
           <form action={removeAction}>
             <input type="hidden" name="siteId" value={siteId} />
             <input type="hidden" name="memberId" value={member.userId} />
-            <Button type="submit" size="sm" variant="ghost" disabled={removePending}>
+            <Button
+              type="submit"
+              size="sm"
+              variant="ghost"
+              className="text-danger hover:text-danger"
+              loading={removePending}
+            >
+              {removePending ? null : <UserMinus />}
               Entfernen
             </Button>
           </form>
@@ -127,22 +142,22 @@ function InvitationRow({ siteId, invitation }: { siteId: string; invitation: Pen
   );
 
   return (
-    <li
-      className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
-      data-testid="invitation"
-    >
-      <div className="min-w-0">
+    <li className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-5" data-testid="invitation">
+      <span className="bg-muted text-muted-foreground grid size-9 shrink-0 place-items-center rounded-full">
+        <Mail className="size-4" aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{invitation.email}</p>
-        <p className="text-xs text-[var(--color-muted-foreground)]">
-          {ROLE_LABELS[invitation.role]} · gültig bis{' '}
-          {invitation.expiresAt.toLocaleDateString('de-DE')}
+        <p className="text-muted-foreground text-xs">
+          {ROLE_LABELS[invitation.role]} · gültig bis {formatDate(invitation.expiresAt)}
         </p>
       </div>
 
       <form action={formAction}>
         <input type="hidden" name="siteId" value={siteId} />
         <input type="hidden" name="invitationId" value={invitation.id} />
-        <Button type="submit" size="sm" variant="ghost" disabled={pending}>
+        <Button type="submit" size="sm" variant="ghost" loading={pending}>
+          {pending ? null : <X />}
           Zurückziehen
         </Button>
       </form>
@@ -181,66 +196,84 @@ export function TeamManager({
   const full = seatsUsed >= seatLimit;
 
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
-        <h2 className="font-medium">Mitglieder</h2>
-        <ul className="divide-y rounded-lg border" data-testid="member-list">
-          {members.map((member) => (
-            <MemberRow
-              key={member.userId}
-              siteId={siteId}
-              member={member}
-              assignable={assignable}
-            />
-          ))}
-        </ul>
-      </section>
-
-      {invitations.length > 0 ? (
-        <section className="space-y-3">
-          <h2 className="font-medium">Offene Einladungen</h2>
-          <ul className="divide-y rounded-lg border" data-testid="invitation-list">
-            {invitations.map((invitation) => (
-              <InvitationRow key={invitation.id} siteId={siteId} invitation={invitation} />
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Mitglieder</CardTitle>
+            <CardDescription>
+              {members.length === 1 ? 'Eine Person' : `${members.length} Personen`} mit Zugang zu
+              dieser Site.
+            </CardDescription>
+          </CardHeader>
+          <ul className="divide-y border-t" data-testid="member-list">
+            {members.map((member) => (
+              <MemberRow
+                key={member.userId}
+                siteId={siteId}
+                member={member}
+                assignable={assignable}
+              />
             ))}
           </ul>
-        </section>
-      ) : null}
+        </Card>
+
+        {invitations.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Offene Einladungen</CardTitle>
+              <CardDescription>
+                Noch nicht angenommen; ein Platz ist trotzdem reserviert.
+              </CardDescription>
+            </CardHeader>
+            <ul className="divide-y border-t" data-testid="invitation-list">
+              {invitations.map((invitation) => (
+                <InvitationRow key={invitation.id} siteId={siteId} invitation={invitation} />
+              ))}
+            </ul>
+          </Card>
+        ) : null}
+      </div>
 
       {assignable.length > 0 ? (
-        <section className="space-y-3">
-          <h2 className="font-medium">Einladen</h2>
-          <p className="text-sm text-[var(--color-muted-foreground)]">
-            {seatsUsed} von {seatLimit} Plätzen belegt.
-          </p>
+        <Card className="self-start">
+          <CardHeader>
+            <CardTitle>Einladen</CardTitle>
+            <CardDescription>
+              {full
+                ? 'Alle Plätze sind belegt. Entferne jemanden oder wechsle den Plan.'
+                : `${seatLimit - seatsUsed} ${seatLimit - seatsUsed === 1 ? 'Platz' : 'Plätze'} frei.`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={formAction} className="space-y-4">
+              <input type="hidden" name="siteId" value={siteId} />
 
-          {state.formError ? <Alert>{state.formError}</Alert> : null}
-          {state.notice ? <Alert variant="success">{state.notice}</Alert> : null}
+              {state.formError ? <Alert>{state.formError}</Alert> : null}
+              {state.notice ? <Alert variant="success">{state.notice}</Alert> : null}
 
-          <form action={formAction} className="flex flex-wrap items-end gap-3">
-            <input type="hidden" name="siteId" value={siteId} />
-
-            <div className="min-w-64 flex-1">
               <Field
                 label="E-Mail"
                 name="email"
                 type="email"
                 required
+                placeholder="name@example.de"
                 error={state.errors?.email}
                 disabled={pending || full}
               />
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="invite-role">Rolle</Label>
-              <RoleSelect id="invite-role" name="role" options={assignable} />
-            </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="invite-role">Rolle</Label>
+                <RoleSelect id="invite-role" name="role" options={assignable} />
+              </div>
 
-            <Button type="submit" disabled={pending || full}>
-              {pending ? 'Wird verschickt…' : 'Einladen'}
-            </Button>
-          </form>
-        </section>
+              <Button type="submit" loading={pending} disabled={full} className="w-full">
+                {pending ? null : <Send />}
+                {pending ? 'Wird verschickt…' : 'Einladen'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );

@@ -3,7 +3,7 @@
  * keeps the public pages cacheable and means a site can change its look
  * without re-rendering stored content.
  */
-export const THEME_IDS = ['minimal', 'journal', 'contrast'] as const;
+export const THEME_IDS = ['minimal', 'journal', 'editorial', 'ocean', 'contrast'] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
 
 export const FONT_STACKS = {
@@ -79,6 +79,40 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
       bodyFont: 'serif',
       headingFont: 'serif',
       contentWidth: '40rem',
+    },
+  },
+  editorial: {
+    id: 'editorial',
+    name: 'Editorial',
+    description: 'Magazin-Look: Serifen-Titel, klarer Fließtext, roter Akzent.',
+    tokens: {
+      background: 'oklch(0.985 0.003 90)',
+      foreground: 'oklch(0.18 0.01 50)',
+      muted: 'oklch(0.955 0.006 90)',
+      mutedForeground: 'oklch(0.42 0.015 50)',
+      accent: 'oklch(0.5 0.19 27)',
+      accentForeground: 'oklch(0.99 0 0)',
+      border: 'oklch(0.86 0.01 80)',
+      bodyFont: 'sans',
+      headingFont: 'serif',
+      contentWidth: '46rem',
+    },
+  },
+  ocean: {
+    id: 'ocean',
+    name: 'Ozean',
+    description: 'Kühle Blautöne, weich und ruhig.',
+    tokens: {
+      background: 'oklch(0.98 0.01 220)',
+      foreground: 'oklch(0.22 0.03 240)',
+      muted: 'oklch(0.94 0.02 220)',
+      mutedForeground: 'oklch(0.42 0.04 235)',
+      accent: 'oklch(0.45 0.12 215)',
+      accentForeground: 'oklch(0.99 0 0)',
+      border: 'oklch(0.87 0.03 220)',
+      bodyFont: 'sans',
+      headingFont: 'sans',
+      contentWidth: '44rem',
     },
   },
   contrast: {

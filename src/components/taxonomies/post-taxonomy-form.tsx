@@ -5,6 +5,7 @@ import { Field } from '@/components/auth/field';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { assignTaxonomiesAction, type ActionState } from '@/lib/actions/taxonomies';
 import type { TaxonomyWithCount } from '@/lib/db/queries/taxonomies';
 
@@ -27,9 +28,7 @@ export function PostTaxonomyForm({
   );
 
   return (
-    <form action={formAction} className="space-y-4 rounded-lg border p-4">
-      <h2 className="font-medium">Einordnung</h2>
-
+    <form action={formAction} className="space-y-4">
       <input type="hidden" name="siteId" value={siteId} />
       <input type="hidden" name="postId" value={postId} />
 
@@ -38,12 +37,12 @@ export function PostTaxonomyForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="categoryId">Kategorie</Label>
-        <select
+        <Select
           id="categoryId"
           name="categoryId"
           defaultValue={categoryId ?? ''}
           disabled={pending}
-          className="h-9 w-full rounded-md border bg-transparent px-2 text-sm"
+          aria-invalid={state.errors?.categoryId ? true : undefined}
         >
           <option value="">Ohne Kategorie</option>
           {categories.map((category) => (
@@ -51,9 +50,9 @@ export function PostTaxonomyForm({
               {category.name}
             </option>
           ))}
-        </select>
+        </Select>
         {state.errors?.categoryId ? (
-          <p className="text-sm text-red-700">{state.errors.categoryId}</p>
+          <p className="text-danger text-sm">{state.errors.categoryId}</p>
         ) : null}
       </div>
 
@@ -61,11 +60,13 @@ export function PostTaxonomyForm({
         label="Tags (durch Komma getrennt)"
         name="tags"
         defaultValue={tagNames.join(', ')}
+        placeholder="Reise, Norden, Kurztrip"
+        autoComplete="off"
         error={state.errors?.tags}
         disabled={pending}
       />
 
-      <Button type="submit" size="sm" variant="outline" disabled={pending}>
+      <Button type="submit" size="sm" variant="outline" loading={pending}>
         {pending ? 'Wird gespeichert…' : 'Einordnung speichern'}
       </Button>
     </form>

@@ -12,22 +12,25 @@ export function DeleteSiteForm({ siteId, subdomain }: { siteId: string; subdomai
 
   if (!open) {
     return (
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button variant="danger-outline" size="sm" onClick={() => setOpen(true)}>
         Site löschen
       </Button>
     );
   }
 
   return (
-    <form action={formAction} className="space-y-3 rounded-md border border-red-200 p-4">
+    <form
+      action={formAction}
+      className="border-danger/40 bg-danger-soft/40 space-y-3 rounded-lg border p-4"
+    >
       <input type="hidden" name="siteId" value={siteId} />
       <input type="hidden" name="subdomain" value={subdomain} />
 
       {state.formError ? <Alert>{state.formError}</Alert> : null}
 
       <p className="text-sm">
-        Das löscht die Site <strong>{subdomain}</strong> mit allen Inhalten. Tippe zur Bestätigung{' '}
-        <span className="font-mono">{subdomain}</span> ein.
+        Das löscht die Site <strong>{subdomain}</strong> mit allen Beiträgen, Medien und Kommentaren
+        — endgültig. Tippe zur Bestätigung <span className="font-mono">{subdomain}</span> ein.
       </p>
 
       <Field
@@ -40,7 +43,7 @@ export function DeleteSiteForm({ siteId, subdomain }: { siteId: string; subdomai
       />
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" variant="danger" loading={pending}>
           {pending ? 'Wird gelöscht…' : 'Endgültig löschen'}
         </Button>
         <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>

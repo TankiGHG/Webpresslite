@@ -1,12 +1,13 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { MediaLibrary } from '@/components/media/media-library';
+import { PageHeader } from '@/components/ui/page-header';
 import { requireSession } from '@/lib/auth/session';
 import { listMedia } from '@/lib/db/queries/media';
 import { getSiteForUser } from '@/lib/db/queries/sites';
+import { formatBytes } from '@/lib/media/constants';
 
-export const metadata: Metadata = { title: 'Medien — webpresslite' };
+export const metadata: Metadata = { title: 'Medien' };
 
 export default async function MediaPage({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = await params;
@@ -16,23 +17,20 @@ export default async function MediaPage({ params }: { params: Promise<{ siteId: 
   if (!site) notFound();
 
   const items = await listMedia(siteId, user.id);
+  const totalBytes = items.reduce((sum, item) => sum + item.size, 0);
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Medien</h1>
-        <p className="text-sm text-[var(--color-muted-foreground)]">
-          {site.name} · {items.length} {items.length === 1 ? 'Bild' : 'Bilder'}
-        </p>
-      </header>
+    <div>
+      <PageHeader
+        title="Medien"
+        description={
+          items.length === 0
+            ? 'Bilder für Beiträge, Seiten und Titelbilder.'
+            : `${items.length} ${items.length === 1 ? 'Bild' : 'Bilder'} · ${formatBytes(totalBytes)}`
+        }
+      />
 
       <MediaLibrary siteId={siteId} initial={items} />
-
-      <p className="text-sm">
-        <Link href={`/sites/${siteId}`} className="underline underline-offset-4">
-          Zurück zur Site
-        </Link>
-      </p>
     </div>
   );
 }

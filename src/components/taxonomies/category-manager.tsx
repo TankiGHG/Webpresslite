@@ -1,9 +1,12 @@
 'use client';
 
+import { FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { useActionState } from 'react';
 import { Field } from '@/components/auth/field';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   createCategoryAction,
   deleteCategoryAction,
@@ -18,12 +21,19 @@ function DeleteCategory({ siteId, category }: { siteId: string; category: Taxono
   );
 
   return (
-    <form action={formAction}>
+    <form action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="siteId" value={siteId} />
       <input type="hidden" name="categoryId" value={category.id} />
-      {state.formError ? <Alert>{state.formError}</Alert> : null}
-      <Button type="submit" size="sm" variant="ghost" disabled={pending}>
-        {pending ? 'Löscht…' : 'Löschen'}
+      {state.formError ? <span className="text-danger text-xs">{state.formError}</span> : null}
+      <Button
+        type="submit"
+        size="icon-sm"
+        variant="ghost"
+        className="text-muted-foreground hover:text-danger"
+        aria-label={`Kategorie ${category.name} löschen`}
+        loading={pending}
+      >
+        {pending ? null : <Trash2 />}
       </Button>
     </form>
   );
@@ -42,49 +52,69 @@ export function CategoryManager({
   );
 
   return (
-    <section className="space-y-4">
-      <h2 className="font-medium">Kategorien</h2>
+    <Card>
+      <CardHeader>
+        <CardTitle>Kategorien</CardTitle>
+        <CardDescription>
+          Jeder Beitrag gehört in höchstens eine Kategorie. Leere Kategorien bleiben auf der Site
+          unsichtbar.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {categories.length === 0 ? (
+          <EmptyState
+            compact
+            icon={FolderOpen}
+            title="Noch keine Kategorien"
+            description="Leg unten die erste an, zum Beispiel „Reisen“ oder „Rezepte“."
+            data-testid="no-categories"
+          />
+        ) : (
+          <ul className="divide-y rounded-lg border" data-testid="category-list">
+            {categories.map((category) => (
+              <li key={category.id} className="flex items-center gap-4 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{category.name}</p>
+                  <p className="text-muted-foreground truncate text-xs">
+                    {category.description ? <>{category.description} · </> : null}
+                    <span className="font-mono">/kategorie/{category.slug}</span>
+                  </p>
+                </div>
+                <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                  {category.postCount} {category.postCount === 1 ? 'Beitrag' : 'Beiträge'}
+                </span>
+                <DeleteCategory siteId={siteId} category={category} />
+              </li>
+            ))}
+          </ul>
+        )}
 
-      {categories.length === 0 ? (
-        <p className="text-sm text-[var(--color-muted-foreground)]" data-testid="no-categories">
-          Noch keine Kategorien.
-        </p>
-      ) : (
-        <ul className="divide-y rounded-lg border" data-testid="category-list">
-          {categories.map((category) => (
-            <li key={category.id} className="flex items-center justify-between gap-4 px-4 py-3">
-              <div className="min-w-0">
-                <p className="font-medium">{category.name}</p>
-                <p className="truncate text-xs text-[var(--color-muted-foreground)]">
-                  <span className="font-mono">{category.slug}</span> · {category.postCount}{' '}
-                  {category.postCount === 1 ? 'Beitrag' : 'Beiträge'}
-                </p>
-              </div>
-              <DeleteCategory siteId={siteId} category={category} />
-            </li>
-          ))}
-        </ul>
-      )}
+        <form action={formAction} className="space-y-3 border-t pt-5">
+          <input type="hidden" name="siteId" value={siteId} />
+          {state.formError ? <Alert>{state.formError}</Alert> : null}
 
-      <form action={formAction} className="flex flex-wrap items-end gap-3">
-        <input type="hidden" name="siteId" value={siteId} />
-        {state.formError ? (
-          <div className="w-full">
-            <Alert>{state.formError}</Alert>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field
+              label="Neue Kategorie"
+              name="name"
+              required
+              placeholder="z. B. Reisen"
+              error={state.errors?.name}
+            />
+            <Field
+              label="Beschreibung"
+              name="description"
+              placeholder="Optional, erscheint im Archiv"
+              error={state.errors?.description}
+            />
           </div>
-        ) : null}
 
-        <div className="min-w-56 flex-1">
-          <Field label="Neue Kategorie" name="name" required error={state.errors?.name} />
-        </div>
-        <div className="min-w-56 flex-1">
-          <Field label="Beschreibung" name="description" error={state.errors?.description} />
-        </div>
-
-        <Button type="submit" disabled={pending}>
-          {pending ? 'Legt an…' : 'Anlegen'}
-        </Button>
-      </form>
-    </section>
+          <Button type="submit" loading={pending}>
+            {pending ? null : <Plus />}
+            {pending ? 'Legt an…' : 'Anlegen'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

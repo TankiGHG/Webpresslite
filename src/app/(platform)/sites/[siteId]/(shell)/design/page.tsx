@@ -1,15 +1,16 @@
-import Link from 'next/link';
+import { ExternalLink } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { ThemeForm } from '@/components/themes/theme-form';
+import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { requireSession } from '@/lib/auth/session';
 import { getSiteForUser } from '@/lib/db/queries/sites';
 import { can } from '@/lib/sites/permissions';
-import { getEnv } from '@/lib/env';
-import { siteUrl } from '@/lib/tenant/host';
+import { publicSiteUrl } from '@/lib/tenant/public-url';
 import { parseThemeSettings } from '@/lib/themes/settings';
 
-export const metadata: Metadata = { title: 'Design — webpresslite' };
+export const metadata: Metadata = { title: 'Design' };
 
 export default async function DesignPage({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = await params;
@@ -18,31 +19,26 @@ export default async function DesignPage({ params }: { params: Promise<{ siteId:
   const site = await getSiteForUser(siteId, user.id);
   if (!site || !can(site.role, 'site:design')) notFound();
 
-  const base = siteUrl(site.subdomain, getEnv().ROOT_DOMAIN);
-
   return (
-    <div className="space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Design</h1>
-        <p className="text-sm text-[var(--color-muted-foreground)]">
-          {site.name} ·{' '}
-          <a href={base} className="font-mono hover:underline">
-            Site ansehen
-          </a>
-        </p>
-      </header>
+    <div>
+      <PageHeader
+        title="Design"
+        description="Theme, Farben, Schrift und Logo deiner öffentlichen Site."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <a href={publicSiteUrl(site)} target="_blank" rel="noreferrer">
+              Site ansehen
+              <ExternalLink />
+            </a>
+          </Button>
+        }
+      />
 
       <ThemeForm
         siteId={site.id}
         theme={site.theme}
         settings={parseThemeSettings(site.themeSettings)}
       />
-
-      <p className="text-sm">
-        <Link href={`/sites/${siteId}`} className="underline underline-offset-4">
-          Zurück zur Site
-        </Link>
-      </p>
     </div>
   );
 }

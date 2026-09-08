@@ -6,7 +6,13 @@ import { z } from 'zod';
 import { requireSession } from '@/lib/auth/session';
 import { logger } from '@/lib/logger';
 import { fieldErrors } from '@/lib/auth/validation';
-import { createPost, deletePost, setPostStatus, updatePost } from '@/lib/db/queries/posts';
+import {
+  CoverNotFoundError,
+  createPost,
+  deletePost,
+  setPostStatus,
+  updatePost,
+} from '@/lib/db/queries/posts';
 import { siteContentTag } from '@/lib/db/queries/public-sites';
 import { SiteAccessError } from '@/lib/db/queries/sites';
 import type { JSONContent } from '@/lib/editor/types';
@@ -101,6 +107,34 @@ export async function savePostAction(input: {
   revalidateTag(siteContentTag(input.siteId));
 
   return { ok: true, savedAt: new Date().toISOString() };
+}
+
+/** Sets or removes the cover image; the editor calls this outside a form. */
+export async function setCoverAction(input: {
+  siteId: string;
+  postId: string;
+  mediaId: string | null;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { user } = await requireSession('/dashboard');
+
+  try {
+    await updatePost({
+      siteId: input.siteId,
+      postId: input.postId,
+      userId: user.id,
+      coverMediaId: input.mediaId,
+    });
+  } catch (error) {
+    if (error instanceof SiteAccessError) return { ok: false, error: 'Kein Zugriff.' };
+    if (error instanceof CoverNotFoundError) {
+      return { ok: false, error: 'Das Bild gehört nicht zu dieser Site.' };
+    }
+    throw error;
+  }
+
+  revalidateTag(siteContentTag(input.siteId));
+  revalidatePath(`/sites/${input.siteId}/posts/${input.postId}`);
+  return { ok: true };
 }
 
 const settingsSchema = z.object({

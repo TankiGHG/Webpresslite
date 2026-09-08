@@ -1,12 +1,15 @@
 'use client';
 
+import { CalendarClock, ExternalLink, Rocket, Undo2 } from 'lucide-react';
 import { useActionState } from 'react';
+import { PostStatusBadge } from '@/components/posts/status-badge';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { changePostStatusAction, type ActionState } from '@/lib/actions/posts';
-import { POST_STATUS_LABELS, type PostStatus } from '@/lib/posts/constants';
+import { formatDateTime } from '@/lib/format';
+import type { PostStatus } from '@/lib/posts/constants';
 
 /** `datetime-local` wants local wall clock time without a timezone suffix. */
 function toLocalInputValue(date: Date): string {
@@ -39,63 +42,73 @@ export function PublishPanel({
   );
 
   return (
-    <div className="space-y-4 rounded-lg border p-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-medium">Veröffentlichung</h2>
-        <span
-          className="rounded-full border px-2 py-0.5 text-xs"
-          data-testid="post-status"
-          data-status={status}
-        >
-          {POST_STATUS_LABELS[status]}
-        </span>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-muted-foreground text-sm">Status</span>
+        <PostStatusBadge status={status} data-testid="post-status" />
       </div>
 
       {state.formError ? <Alert>{state.formError}</Alert> : null}
 
       {status === 'published' && publishedAt ? (
-        <p className="text-xs text-[var(--color-muted-foreground)]">
-          Seit {new Date(publishedAt).toLocaleString('de-DE')} öffentlich unter{' '}
-          <a href={publicUrl} className="font-mono underline underline-offset-4">
-            {publicUrl}
+        <div className="bg-success-soft text-success rounded-lg px-3 py-2.5 text-xs">
+          <p>Öffentlich seit {formatDateTime(new Date(publishedAt))}.</p>
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 inline-flex items-center gap-1 font-medium underline-offset-4 hover:underline"
+          >
+            Auf der Site ansehen
+            <ExternalLink className="size-3" />
           </a>
-        </p>
+        </div>
       ) : null}
 
       {status === 'scheduled' && publishedAt ? (
-        <p className="text-xs text-[var(--color-muted-foreground)]" data-testid="scheduled-for">
-          Geplant für {new Date(publishedAt).toLocaleString('de-DE')}
-        </p>
+        <div
+          className="bg-warning-soft text-warning rounded-lg px-3 py-2.5 text-xs"
+          data-testid="scheduled-for"
+        >
+          Erscheint automatisch am {formatDateTime(new Date(publishedAt))}.
+        </div>
       ) : null}
 
       {!canPublish ? (
-        <p className="text-sm text-[var(--color-muted-foreground)]" data-testid="cannot-publish">
+        <p className="text-muted-foreground text-sm" data-testid="cannot-publish">
           Veröffentlichen übernimmt die Redaktion. Dein Entwurf ist gespeichert.
         </p>
       ) : (
-        <form action={formAction} className="space-y-3">
+        <form action={formAction} className="space-y-4">
           <input type="hidden" name="siteId" value={siteId} />
           <input type="hidden" name="postId" value={postId} />
 
-          <div className="flex flex-wrap gap-2">
-            {status !== 'published' ? (
-              <Button type="submit" name="intent" value="publish" disabled={pending}>
-                Jetzt veröffentlichen
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                name="intent"
-                value="unpublish"
-                variant="outline"
-                disabled={pending}
-              >
-                Zurück zum Entwurf
-              </Button>
-            )}
-          </div>
+          {status !== 'published' ? (
+            <Button
+              type="submit"
+              name="intent"
+              value="publish"
+              className="w-full"
+              loading={pending}
+            >
+              {pending ? null : <Rocket />}
+              Jetzt veröffentlichen
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              name="intent"
+              value="unpublish"
+              variant="outline"
+              className="w-full"
+              loading={pending}
+            >
+              {pending ? null : <Undo2 />}
+              Zurück zum Entwurf
+            </Button>
+          )}
 
-          <div className="space-y-1.5 border-t pt-3">
+          <div className="space-y-2 border-t pt-4">
             <Label htmlFor="scheduledFor">Später veröffentlichen</Label>
             <Input
               id="scheduledFor"
@@ -103,19 +116,24 @@ export function PublishPanel({
               type="datetime-local"
               defaultValue={defaultSchedule}
               aria-invalid={state.errors?.scheduledFor ? true : undefined}
+              aria-describedby={state.errors?.scheduledFor ? 'scheduledFor-error' : undefined}
               disabled={pending}
             />
             {state.errors?.scheduledFor ? (
-              <p className="text-sm text-red-700">{state.errors.scheduledFor}</p>
+              <p id="scheduledFor-error" className="text-danger text-sm">
+                {state.errors.scheduledFor}
+              </p>
             ) : null}
             <Button
               type="submit"
               name="intent"
               value="schedule"
-              variant="outline"
+              variant="secondary"
               size="sm"
+              className="w-full"
               disabled={pending}
             >
+              <CalendarClock />
               Veröffentlichung planen
             </Button>
           </div>

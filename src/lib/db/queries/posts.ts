@@ -2,7 +2,7 @@ import 'server-only';
 import { randomBytes } from 'node:crypto';
 import { and, asc, count, desc, eq, lte, ne, sql } from 'drizzle-orm';
 import { getDb } from '@/lib/db/client';
-import { posts, sites, user, type PostRow } from '@/lib/db/schema';
+import { media, posts, sites, user, type PostRow } from '@/lib/db/schema';
 import { contentToText, renderContent, deriveExcerpt } from '@/lib/editor/render';
 import type { JSONContent } from '@/lib/editor/types';
 import type { PostStatus, PostType } from '@/lib/posts/constants';
@@ -56,13 +56,15 @@ export interface PostListItem {
 export async function listPosts(
   siteId: string,
   userId: string,
-  filter?: { type?: PostType },
+  filter?: { type?: PostType; status?: PostStatus },
 ): Promise<PostListItem[]> {
   await requireSiteAccess(siteId, userId);
 
-  const where = filter?.type
-    ? and(eq(posts.siteId, siteId), eq(posts.type, filter.type))
-    : eq(posts.siteId, siteId);
+  const where = and(
+    eq(posts.siteId, siteId),
+    filter?.type ? eq(posts.type, filter.type) : undefined,
+    filter?.status ? eq(posts.status, filter.status) : undefined,
+  );
 
   return getDb()
     .select({
@@ -157,6 +159,15 @@ export interface UpdatePostInput {
   content?: JSONContent;
   seoTitle?: string | null;
   seoDescription?: string | null;
+  /** `null` removes the cover; the image must belong to the same site. */
+  coverMediaId?: string | null;
+}
+
+export class CoverNotFoundError extends Error {
+  constructor() {
+    super('Cover image not found on this site.');
+    this.name = 'CoverNotFoundError';
+  }
 }
 
 /**
@@ -184,13 +195,33 @@ export async function updatePost(input: UpdatePostInput): Promise<PostRow> {
     );
   }
 
+  if (input.coverMediaId !== undefined) {
+    if (input.coverMediaId !== null) {
+      const owned = await getDb()
+        .select({ id: media.id })
+        .from(media)
+        .where(and(eq(media.siteId, input.siteId), eq(media.id, input.coverMediaId)))
+        .limit(1);
+      if (owned.length === 0) throw new CoverNotFoundError();
+    }
+    values.coverMediaId = input.coverMediaId;
+  }
+
   if (input.content !== undefined) {
     values.contentJson = input.content;
     values.contentHtml = renderContent(input.content);
     // Kept in step with the document so full text search never goes stale.
     values.contentText = contentToText(input.content);
-    values.excerpt =
-      input.excerpt !== undefined ? input.excerpt : deriveExcerpt(input.content) || null;
+    if (input.excerpt !== undefined) {
+      values.excerpt = input.excerpt;
+    } else if (
+      existing.excerpt === null ||
+      existing.excerpt === (deriveExcerpt(existing.contentJson) || null)
+    ) {
+      // Only an excerpt we derived ourselves follows the text; a hand-written
+      // one survives every autosave.
+      values.excerpt = deriveExcerpt(input.content) || null;
+    }
   } else if (input.excerpt !== undefined) {
     values.excerpt = input.excerpt;
   }

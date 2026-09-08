@@ -14,7 +14,7 @@ export type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
 export function useAutosave<T>(save: (value: T) => Promise<void>, delayMs = 1500) {
   const [state, setState] = useState<SaveState>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inFlight = useRef(false);
+  const inFlight = useRef<Promise<boolean> | null>(null);
   const pending = useRef<{ value: T } | null>(null);
   const saveRef = useRef(save);
 
@@ -22,27 +22,35 @@ export function useAutosave<T>(save: (value: T) => Promise<void>, delayMs = 1500
     saveRef.current = save;
   }, [save]);
 
-  const flush = useCallback(async () => {
-    if (inFlight.current || !pending.current) return;
+  /** Writes everything pending; resolves to whether it all went through. */
+  const flush = useCallback((): Promise<boolean> => {
+    if (inFlight.current) return inFlight.current;
+    if (!pending.current) return Promise.resolve(true);
 
-    inFlight.current = true;
-    setState('saving');
+    const run = (async () => {
+      setState('saving');
 
-    while (pending.current) {
-      const { value } = pending.current;
-      pending.current = null;
+      while (pending.current) {
+        const { value } = pending.current;
+        pending.current = null;
 
-      try {
-        await saveRef.current(value);
-      } catch {
-        inFlight.current = false;
-        setState('error');
-        return;
+        try {
+          await saveRef.current(value);
+        } catch {
+          setState('error');
+          return false;
+        }
       }
-    }
 
-    inFlight.current = false;
-    setState('saved');
+      setState('saved');
+      return true;
+    })();
+
+    inFlight.current = run;
+    void run.finally(() => {
+      inFlight.current = null;
+    });
+    return run;
   }, []);
 
   const schedule = useCallback(
@@ -56,11 +64,19 @@ export function useAutosave<T>(save: (value: T) => Promise<void>, delayMs = 1500
     [delayMs, flush],
   );
 
+  /**
+   * Skips the debounce. Without a value it only writes what is pending, so
+   * callers can make sure nothing is left unsaved before acting on the server
+   * copy — publishing, for instance.
+   */
   const saveNow = useCallback(
-    async (value?: T) => {
+    async (value?: T): Promise<boolean> => {
       if (value !== undefined) pending.current = { value };
       if (timer.current) clearTimeout(timer.current);
-      await flush();
+      // A save that is already running picks up anything pending itself, but
+      // a change made in its very last moment could slip past; look again.
+      if (inFlight.current) await inFlight.current;
+      return flush();
     },
     [flush],
   );

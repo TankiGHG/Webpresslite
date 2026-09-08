@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { AuthCard } from '@/components/auth/auth-card';
 import { LoginForm } from '@/components/auth/login-form';
 
-export const metadata: Metadata = { title: 'Anmelden — webpresslite' };
+export const metadata: Metadata = { title: 'Anmelden' };
 
 /** Only same-origin paths are accepted, so `?redirectTo=` cannot bounce elsewhere. */
 function safeRedirect(value: string | undefined): string {
@@ -25,15 +25,10 @@ export default async function LoginPage({
       footer={
         <div className="space-y-1">
           <p>
-            <Link href="/forgot-password" className="underline underline-offset-4">
-              Passwort vergessen?
-            </Link>
+            <Link href="/forgot-password">Passwort vergessen?</Link>
           </p>
           <p>
-            Noch kein Konto?{' '}
-            <Link href="/register" className="underline underline-offset-4">
-              Jetzt registrieren
-            </Link>
+            Noch kein Konto? <Link href="/register">Jetzt registrieren</Link>
           </p>
         </div>
       }

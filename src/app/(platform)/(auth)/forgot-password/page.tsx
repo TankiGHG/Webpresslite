@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { AuthCard } from '@/components/auth/auth-card';
 import { ForgotPasswordForm } from '@/components/auth/forgot-password-form';
 
-export const metadata: Metadata = { title: 'Passwort vergessen — webpresslite' };
+export const metadata: Metadata = { title: 'Passwort vergessen' };
 
 export default function ForgotPasswordPage() {
   return (
@@ -12,9 +12,7 @@ export default function ForgotPasswordPage() {
       description="Wir schicken dir einen Link, mit dem du ein neues Passwort vergeben kannst."
       footer={
         <p>
-          <Link href="/login" className="underline underline-offset-4">
-            Zurück zur Anmeldung
-          </Link>
+          <Link href="/login">Zurück zur Anmeldung</Link>
         </p>
       }
     >

@@ -5,6 +5,12 @@ import { getPublicSite, searchPosts } from '@/lib/db/queries/public-sites';
 
 type Params = Promise<{ siteId: string }>;
 
+const dateFormat = new Intl.DateTimeFormat('de-DE', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { siteId } = await params;
   const site = await getPublicSite(siteId);
@@ -32,12 +38,24 @@ export default async function SearchPage({
   const hits = query ? await searchPosts(siteId, query) : [];
 
   return (
-    <div className="space-y-6">
+    <div>
       <header className="post-header">
         <h1>Suche</h1>
+        {query ? (
+          <p className="post-meta" aria-live="polite">
+            {hits.length === 0
+              ? 'Keine Treffer'
+              : hits.length === 1
+                ? 'Ein Treffer'
+                : `${hits.length} Treffer`}{' '}
+            für {'„'}
+            {query}
+            {'“'}
+          </p>
+        ) : null}
       </header>
 
-      <form action="/suche" method="get" className="flex gap-2" role="search">
+      <form action="/suche" method="get" className="site-search-form" role="search">
         <label htmlFor="q" className="sr-only">
           Suchbegriff
         </label>
@@ -47,43 +65,43 @@ export default async function SearchPage({
           type="search"
           defaultValue={query}
           placeholder="Wonach suchst du?"
-          className="h-10 flex-1 rounded-md border bg-transparent px-3 text-base"
-          style={{ borderColor: 'var(--site-border)' }}
+          autoFocus={query === ''}
         />
-        <button
-          type="submit"
-          className="h-10 rounded-md px-4 text-sm font-medium"
-          style={{
-            background: 'var(--site-accent)',
-            color: 'var(--site-accent-foreground)',
-          }}
-        >
-          Suchen
-        </button>
+        <button type="submit">Suchen</button>
       </form>
 
       {query === '' ? null : hits.length === 0 ? (
-        <p className="post-meta" data-testid="no-results">
-          Nichts gefunden für {'\u201e'}
-          {query}
-          {'\u201c'}
-        </p>
+        <div className="site-empty" data-testid="no-results">
+          <p>
+            Nichts gefunden für {'„'}
+            {query}
+            {'“'}.
+          </p>
+          <p className="post-meta">Versuch es mit einem anderen Begriff oder stöbere im Archiv.</p>
+          <p>
+            <Link href="/archiv">Zum Archiv</Link>
+          </p>
+        </div>
       ) : (
         <ul className="post-list" data-testid="search-results">
           {hits.map((hit) => (
             <li key={hit.id} className="post-list-item">
-              <h2>
-                <Link href={`/beitrag/${hit.slug}`}>{hit.title}</Link>
-              </h2>
-              {hit.publishedAt ? (
-                <p className="post-meta">
-                  <time dateTime={new Date(hit.publishedAt).toISOString()}>
-                    {new Date(hit.publishedAt).toLocaleDateString('de-DE')}
-                  </time>
-                </p>
-              ) : null}
-              {/* Sanitized in the query layer down to <mark>. */}
-              <p className="post-excerpt" dangerouslySetInnerHTML={{ __html: hit.headline }} />
+              <div>
+                {hit.publishedAt ? (
+                  <p className="post-meta">
+                    <time dateTime={new Date(hit.publishedAt).toISOString()}>
+                      {dateFormat.format(new Date(hit.publishedAt))}
+                    </time>
+                    <span className="dot" aria-hidden />
+                    <span>{hit.readingMinutes} Min. Lesezeit</span>
+                  </p>
+                ) : null}
+                <h2>
+                  <Link href={`/beitrag/${hit.slug}`}>{hit.title}</Link>
+                </h2>
+                {/* Sanitized in the query layer down to <mark>. */}
+                <p className="post-excerpt" dangerouslySetInnerHTML={{ __html: hit.headline }} />
+              </div>
             </li>
           ))}
         </ul>

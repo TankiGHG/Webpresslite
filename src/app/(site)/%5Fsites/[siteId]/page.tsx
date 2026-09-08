@@ -3,7 +3,11 @@ import type { Metadata } from 'next';
 import { Pagination } from '@/components/site/pagination';
 import { PostList } from '@/components/site/post-list';
 import { after } from 'next/server';
-import { getPublicSite, getPublishedPage } from '@/lib/db/queries/public-sites';
+import {
+  getPublicSite,
+  getPublishedPage,
+  listPublicCategories,
+} from '@/lib/db/queries/public-sites';
 import { recordView } from '@/lib/db/queries/stats';
 
 export async function generateMetadata({
@@ -18,7 +22,7 @@ export async function generateMetadata({
 
   return {
     title: site.name,
-    description: `Beiträge von ${site.name}`,
+    description: site.description ?? `Beiträge von ${site.name}`,
     alternates: { types: { 'application/rss+xml': '/feed.xml' } },
   };
 }
@@ -29,7 +33,11 @@ export default async function SiteHomePage({ params }: { params: Promise<{ siteI
 
   if (!site) notFound();
 
-  const { posts, page, pageCount } = await getPublishedPage(siteId, 1);
+  const [{ posts, page, pageCount }, categories] = await Promise.all([
+    getPublishedPage(siteId, 1),
+    listPublicCategories(siteId),
+  ]);
+  const categoryById = new Map(categories.map((category) => [category.id, category]));
 
   // A site-level view: no post id, so the home page counts towards the total
   // without polluting the per-post ranking.
@@ -39,14 +47,24 @@ export default async function SiteHomePage({ params }: { params: Promise<{ siteI
 
   return (
     <div>
+      {site.description ? (
+        <header className="site-hero">
+          <h1>{site.name}</h1>
+          <p>{site.description}</p>
+        </header>
+      ) : (
+        <h1 className="sr-only">{site.name}</h1>
+      )}
+
       {posts.length === 0 ? (
-        <p className="post-meta" data-testid="no-published">
-          Hier ist noch nichts veröffentlicht.
-        </p>
+        <div className="site-empty" data-testid="no-published">
+          <p>Hier ist noch nichts veröffentlicht.</p>
+          <p className="post-meta">Der erste Beitrag erscheint hier, sobald er live ist.</p>
+        </div>
       ) : (
         <>
-          <h1 className="sr-only">Beiträge von {site.name}</h1>
-          <PostList posts={posts} />
+          <h2 className="site-section-title">Neueste Beiträge</h2>
+          <PostList posts={posts} categories={categoryById} />
           <Pagination page={page} pageCount={pageCount} />
         </>
       )}

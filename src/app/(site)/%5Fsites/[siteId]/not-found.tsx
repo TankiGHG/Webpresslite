@@ -2,11 +2,16 @@ import Link from 'next/link';
 
 export default function SiteNotFound() {
   return (
-    <div className="space-y-4">
-      <h1 className="post-header">Seite nicht gefunden</h1>
+    <div className="site-empty">
+      <p className="post-meta">Fehler 404</p>
+      <h1>Seite nicht gefunden</h1>
       <p>Diese Adresse gibt es hier nicht — vielleicht wurde der Beitrag umbenannt.</p>
       <p>
-        <Link href="/">Zur Startseite</Link> · <Link href="/archiv">Zum Archiv</Link>
+        <Link href="/">Zur Startseite</Link>
+        <span className="dot" aria-hidden />
+        <Link href="/archiv">Zum Archiv</Link>
+        <span className="dot" aria-hidden />
+        <Link href="/suche">Suchen</Link>
       </p>
     </div>
   );

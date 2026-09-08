@@ -1,6 +1,5 @@
 import { getPublicSite } from '@/lib/db/queries/public-sites';
-import { getEnv } from '@/lib/env';
-import { siteUrl } from '@/lib/tenant/host';
+import { publicSiteUrl } from '@/lib/tenant/public-url';
 
 export async function GET(_request: Request, { params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = await params;
@@ -8,7 +7,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ sit
 
   if (!site) return new Response('Not found', { status: 404 });
 
-  const base = siteUrl(site.subdomain, getEnv().ROOT_DOMAIN);
+  const base = publicSiteUrl(site);
 
   const body = `User-agent: *
 Allow: /

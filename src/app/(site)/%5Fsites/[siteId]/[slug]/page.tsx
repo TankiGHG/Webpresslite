@@ -2,8 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { RenderedContent } from '@/components/editor/rendered-content';
 import { getPublicSite, getPublishedPost } from '@/lib/db/queries/public-sites';
-import { getEnv } from '@/lib/env';
-import { siteUrl } from '@/lib/tenant/host';
+import { publicSiteUrl } from '@/lib/tenant/public-url';
 
 type Params = Promise<{ siteId: string; slug: string }>;
 
@@ -16,7 +15,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
   if (!site || !page) return { title: 'Nicht gefunden', robots: { index: false } };
 
-  const url = `${siteUrl(site.subdomain, getEnv().ROOT_DOMAIN)}/${page.slug}`;
+  const url = `${publicSiteUrl(site)}/${page.slug}`;
   const title = page.seoTitle ?? page.title;
   const description = page.seoDescription ?? page.excerpt ?? undefined;
 
@@ -40,6 +39,23 @@ export default async function PublicPage({ params }: { params: Params }) {
       <header className="post-header">
         <h1 data-testid="page-title">{page.title}</h1>
       </header>
+
+      {page.cover ? (
+        <figure className="post-cover">
+          {/* Variants from our own storage with known dimensions. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={page.cover.urls.full}
+            srcSet={page.cover.srcset}
+            sizes="(max-width: 48rem) 100vw, 44rem"
+            alt={page.cover.alt ?? ''}
+            width={page.cover.width ?? undefined}
+            height={page.cover.height ?? undefined}
+            fetchPriority="high"
+          />
+        </figure>
+      ) : null}
+
       <RenderedContent html={page.contentHtml} />
     </article>
   );

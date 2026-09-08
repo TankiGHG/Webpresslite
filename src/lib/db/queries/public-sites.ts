@@ -5,6 +5,7 @@ import sanitizeHtml from 'sanitize-html';
 import { getDb } from '@/lib/db/client';
 import {
   categories,
+  media,
   postTags,
   posts,
   sites,
@@ -12,6 +13,10 @@ import {
   type PostRow,
   type SiteRow,
 } from '@/lib/db/schema';
+import { mediaBaseUrl } from '@/lib/env';
+import { countWords, readingMinutes } from '@/lib/format';
+import { publicUrl, variantKey } from '@/lib/media/keys';
+import { buildSrcSet } from '@/lib/media/srcset';
 
 /**
  * Cache tags. Public pages are cached per site and invalidated when that
@@ -48,12 +53,87 @@ function reviveEntry(entry: PublishedEntry): PublishedEntry {
   };
 }
 
-function revivePost(post: PostRow): PostRow {
+function revivePost(post: PublicPost): PublicPost {
   return {
     ...post,
     publishedAt: toDate(post.publishedAt),
     createdAt: toDate(post.createdAt) ?? new Date(0),
     updatedAt: toDate(post.updatedAt) ?? new Date(0),
+  };
+}
+
+/** A post's cover image with everything a responsive `<img>` needs. */
+export interface PublicCover {
+  id: string;
+  alt: string;
+  width: number | null;
+  height: number | null;
+  urls: { thumb: string; medium: string; full: string };
+  srcset: string;
+}
+
+/** Columns selected from the joined media row; all null without a cover. */
+const coverColumns = {
+  coverId: media.id,
+  coverAlt: media.alt,
+  coverWidth: media.width,
+  coverHeight: media.height,
+};
+
+type CoverColumns = {
+  coverId: string | null;
+  coverAlt: string | null;
+  coverWidth: number | null;
+  coverHeight: number | null;
+};
+
+function toCover(siteId: string, row: CoverColumns): PublicCover | null {
+  if (!row.coverId) return null;
+  const base = mediaBaseUrl();
+  const urls = {
+    thumb: publicUrl(base, variantKey(siteId, row.coverId, 'thumb')),
+    medium: publicUrl(base, variantKey(siteId, row.coverId, 'medium')),
+    full: publicUrl(base, variantKey(siteId, row.coverId, 'full')),
+  };
+  return {
+    id: row.coverId,
+    alt: row.coverAlt ?? '',
+    width: row.coverWidth,
+    height: row.coverHeight,
+    urls,
+    srcset: buildSrcSet({ width: row.coverWidth, urls }),
+  };
+}
+
+/** Selection shared by every public list; joined with `media` for the cover. */
+const listColumns = {
+  id: posts.id,
+  title: posts.title,
+  slug: posts.slug,
+  excerpt: posts.excerpt,
+  publishedAt: posts.publishedAt,
+  categoryId: posts.categoryId,
+  contentText: posts.contentText,
+  ...coverColumns,
+};
+
+type ListRow = CoverColumns &
+  Pick<PostRow, 'id' | 'title' | 'slug' | 'excerpt' | 'publishedAt' | 'categoryId'> & {
+    contentText: string;
+  };
+
+function toListItem<T extends ListRow>(
+  siteId: string,
+  row: T,
+): Omit<T, keyof CoverColumns | 'contentText'> & {
+  cover: PublicCover | null;
+  readingMinutes: number;
+} {
+  const { coverId, coverAlt, coverWidth, coverHeight, contentText, ...rest } = row;
+  return {
+    ...rest,
+    cover: toCover(siteId, { coverId, coverAlt, coverWidth, coverHeight }),
+    readingMinutes: readingMinutes(countWords(contentText)),
   };
 }
 
@@ -64,7 +144,7 @@ function revivePost(post: PostRow): PostRow {
  */
 export type PublicSite = Pick<
   SiteRow,
-  'id' | 'name' | 'subdomain' | 'customDomain' | 'theme' | 'themeSettings'
+  'id' | 'name' | 'description' | 'subdomain' | 'customDomain' | 'theme' | 'themeSettings'
 >;
 
 /**
@@ -83,6 +163,7 @@ async function loadPublicSite(siteId: string): Promise<PublicSite | null> {
     .select({
       id: sites.id,
       name: sites.name,
+      description: sites.description,
       subdomain: sites.subdomain,
       customDomain: sites.customDomain,
       theme: sites.theme,
@@ -95,9 +176,21 @@ async function loadPublicSite(siteId: string): Promise<PublicSite | null> {
   return rows[0] ?? null;
 }
 
-export type PublicPostListItem = Pick<PostRow, 'id' | 'title' | 'slug' | 'excerpt' | 'publishedAt'>;
+export type PublicPostListItem = Pick<
+  PostRow,
+  'id' | 'title' | 'slug' | 'excerpt' | 'publishedAt' | 'categoryId'
+> & {
+  cover: PublicCover | null;
+  readingMinutes: number;
+};
 
-export type PublishedEntry = PublicPostListItem & { type: 'post' | 'page'; updatedAt: Date };
+export type PublishedEntry = Pick<PostRow, 'id' | 'title' | 'slug' | 'excerpt' | 'publishedAt'> & {
+  type: 'post' | 'page';
+  updatedAt: Date;
+};
+
+/** A published post as the public pages see it: the row plus its cover. */
+export type PublicPost = PostRow & { cover: PublicCover | null; readingMinutes: number };
 
 /**
  * Only published posts whose moment has actually passed. A scheduled post that
@@ -122,19 +215,16 @@ export async function listPublishedPosts(
 ): Promise<PublicPostListItem[]> {
   const { limit = POSTS_PER_PAGE, offset = 0, now = new Date() } = options;
 
-  return getDb()
-    .select({
-      id: posts.id,
-      title: posts.title,
-      slug: posts.slug,
-      excerpt: posts.excerpt,
-      publishedAt: posts.publishedAt,
-    })
+  const rows = await getDb()
+    .select(listColumns)
     .from(posts)
+    .leftJoin(media, eq(media.id, posts.coverMediaId))
     .where(and(publishedCondition(siteId, now), eq(posts.type, 'post')))
     .orderBy(desc(posts.publishedAt))
     .limit(limit)
     .offset(offset);
+
+  return rows.map((row) => toListItem(siteId, row));
 }
 
 export async function countPublishedPosts(siteId: string, now = new Date()): Promise<number> {
@@ -213,7 +303,7 @@ export async function getPublishedPost(
   siteId: string,
   slug: string,
   options: { type?: 'post' | 'page' } = {},
-): Promise<PostRow | null> {
+): Promise<PublicPost | null> {
   const type = options.type ?? 'post';
 
   const cached = await unstable_cache(
@@ -229,16 +319,24 @@ async function loadPublishedPost(
   siteId: string,
   slug: string,
   type: 'post' | 'page',
-): Promise<PostRow | null> {
+): Promise<PublicPost | null> {
   const now = new Date();
 
   const rows = await getDb()
-    .select()
+    .select({ post: posts, ...coverColumns })
     .from(posts)
+    .leftJoin(media, eq(media.id, posts.coverMediaId))
     .where(and(publishedCondition(siteId, now), eq(posts.slug, slug), eq(posts.type, type)))
     .limit(1);
 
-  return rows[0] ?? null;
+  const row = rows[0];
+  if (!row) return null;
+  const { post, ...cover } = row;
+  return {
+    ...post,
+    cover: toCover(siteId, cover),
+    readingMinutes: readingMinutes(countWords(post.contentText)),
+  };
 }
 
 // --- Taxonomies and search ---------------------------------------------------
@@ -317,17 +415,14 @@ export async function listPostsInCategory(
 ): Promise<PublicPostListItem[]> {
   const now = new Date();
 
-  return getDb()
-    .select({
-      id: posts.id,
-      title: posts.title,
-      slug: posts.slug,
-      excerpt: posts.excerpt,
-      publishedAt: posts.publishedAt,
-    })
+  const rows = await getDb()
+    .select(listColumns)
     .from(posts)
+    .leftJoin(media, eq(media.id, posts.coverMediaId))
     .where(and(publishedCondition(siteId, now), eq(posts.categoryId, categoryId)))
     .orderBy(desc(posts.publishedAt));
+
+  return rows.map((row) => toListItem(siteId, row));
 }
 
 export async function listPostsWithTag(
@@ -336,18 +431,15 @@ export async function listPostsWithTag(
 ): Promise<PublicPostListItem[]> {
   const now = new Date();
 
-  return getDb()
-    .select({
-      id: posts.id,
-      title: posts.title,
-      slug: posts.slug,
-      excerpt: posts.excerpt,
-      publishedAt: posts.publishedAt,
-    })
+  const rows = await getDb()
+    .select(listColumns)
     .from(posts)
     .innerJoin(postTags, eq(postTags.postId, posts.id))
+    .leftJoin(media, eq(media.id, posts.coverMediaId))
     .where(and(publishedCondition(siteId, now), eq(postTags.tagId, tagId)))
     .orderBy(desc(posts.publishedAt));
+
+  return rows.map((row) => toListItem(siteId, row));
 }
 
 export interface SearchHit extends PublicPostListItem {
@@ -373,6 +465,19 @@ function sanitizeHeadline(headline: string): string {
   return sanitizeHtml(headline, { allowedTags: ['mark'], allowedAttributes: {} });
 }
 
+/**
+ * Postgres cuts the snippet mid-sentence without saying so. An ellipsis on
+ * whichever side is open makes it read as an excerpt rather than a truncated
+ * thought. Sanitize first: the ellipses are the only text added afterwards.
+ */
+function frameHeadline(headline: string, opening: string): string {
+  const safe = sanitizeHeadline(headline);
+  const plain = safe.replace(/<\/?mark>/g, '');
+  const leading = plain.length === 0 || opening.startsWith(plain.slice(0, 24)) ? '' : '… ';
+  const trailing = plain.length === 0 || /[.!?…"“”)]$/.test(plain) ? '' : ' …';
+  return `${leading}${safe}${trailing}`;
+}
+
 export async function searchPosts(siteId: string, query: string, limit = 20): Promise<SearchHit[]> {
   const trimmed = query.trim();
   if (trimmed.length === 0) return [];
@@ -382,15 +487,13 @@ export async function searchPosts(siteId: string, query: string, limit = 20): Pr
 
   const rows = await getDb()
     .select({
-      id: posts.id,
-      title: posts.title,
-      slug: posts.slug,
-      excerpt: posts.excerpt,
-      publishedAt: posts.publishedAt,
+      ...listColumns,
       rank: sql<number>`ts_rank(${searchVector()}, ${tsQuery})`,
       headline: sql<string>`ts_headline('german', ${posts.contentText}, ${tsQuery}, 'MaxWords=30, MinWords=10, ShortWord=3, MaxFragments=1, StartSel=<mark>, StopSel=</mark>')`,
+      opening: sql<string>`left(${posts.contentText}, 64)`,
     })
     .from(posts)
+    .leftJoin(media, eq(media.id, posts.coverMediaId))
     .where(
       and(
         publishedCondition(siteId, now),
@@ -401,7 +504,10 @@ export async function searchPosts(siteId: string, query: string, limit = 20): Pr
     .orderBy(sql`ts_rank(${searchVector()}, ${tsQuery}) desc`)
     .limit(limit);
 
-  return rows.map((row) => ({ ...row, headline: sanitizeHeadline(row.headline) }));
+  return rows.map((row) => ({
+    ...toListItem(siteId, row),
+    headline: frameHeadline(row.headline, row.opening),
+  }));
 }
 
 /** Tags of a set of posts, for rendering them under an article. */

@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { getPublicSite, getPublishedPost } from '@/lib/db/queries/public-sites';
-import { resolveTheme } from '@/lib/themes/definitions';
+import { resolveTheme, type ThemeId } from '@/lib/themes/definitions';
 import { parseThemeSettings } from '@/lib/themes/settings';
 
 /**
@@ -16,11 +16,13 @@ import { parseThemeSettings } from '@/lib/themes/settings';
 const SIZE = { width: 1200, height: 630 };
 
 /** Satori does not understand oklch, so the card carries its own palette. */
-const CARDS = {
+const CARDS: Record<ThemeId, { background: string; foreground: string; accent: string }> = {
   minimal: { background: '#ffffff', foreground: '#1a1a1a', accent: '#2563eb' },
   journal: { background: '#fdfaf3', foreground: '#2b241c', accent: '#a8431f' },
+  editorial: { background: '#fbfaf7', foreground: '#1f1a16', accent: '#c0392b' },
+  ocean: { background: '#f4f8fb', foreground: '#1b2a3a', accent: '#1f6f8b' },
   contrast: { background: '#14161f', foreground: '#f5f6fa', accent: '#e8b931' },
-} as const;
+};
 
 export async function GET(
   _request: Request,

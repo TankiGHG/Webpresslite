@@ -1,7 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getPublicSite, listAllPublished } from '@/lib/db/queries/public-sites';
+import {
+  getPublicSite,
+  listAllPublished,
+  listPublicCategories,
+} from '@/lib/db/queries/public-sites';
+
+const dayFormat = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: 'short' });
 
 export async function generateMetadata({
   params,
@@ -22,7 +28,11 @@ export default async function ArchivePage({ params }: { params: Promise<{ siteId
 
   if (!site) notFound();
 
-  const entries = (await listAllPublished(siteId)).filter((entry) => entry.type === 'post');
+  const [published, categories] = await Promise.all([
+    listAllPublished(siteId),
+    listPublicCategories(siteId),
+  ]);
+  const entries = published.filter((entry) => entry.type === 'post');
 
   // Group by year, newest first. Empty years simply do not appear.
   const byYear = new Map<number, typeof entries>();
@@ -34,34 +44,51 @@ export default async function ArchivePage({ params }: { params: Promise<{ siteId
   }
 
   return (
-    <div className="space-y-8">
-      <h1 className="post-header">Archiv</h1>
+    <div>
+      <header className="post-header">
+        <h1 data-testid="archive-title">Archiv</h1>
+        <p className="post-meta">
+          {entries.length === 1 ? 'Ein Beitrag' : `${entries.length} Beiträge`}
+          {categories.length > 0 ? (
+            <>
+              <span className="dot" aria-hidden />
+              {categories.length === 1 ? 'Eine Kategorie' : `${categories.length} Kategorien`}
+            </>
+          ) : null}
+        </p>
+      </header>
+
+      {categories.length > 0 ? (
+        <nav className="post-taxonomies archive-categories" aria-label="Kategorien">
+          {categories.map((category) => (
+            <Link key={category.id} href={`/kategorie/${category.slug}`}>
+              {category.name} <span className="count">{category.postCount}</span>
+            </Link>
+          ))}
+        </nav>
+      ) : null}
 
       {entries.length === 0 ? (
-        <p className="post-meta" data-testid="empty-archive">
-          Noch keine veröffentlichten Beiträge.
-        </p>
+        <div className="site-empty" data-testid="empty-archive">
+          <p>Noch keine veröffentlichten Beiträge.</p>
+        </div>
       ) : (
-        <div data-testid="archive">
+        <div data-testid="archive" className="archive">
           {[...byYear.entries()]
             .sort(([a], [b]) => b - a)
             .map(([year, yearEntries]) => (
-              <section key={year} className="mb-8">
-                <h2 className="mb-3 text-xl font-semibold">{year}</h2>
-                <ul className="space-y-2">
+              <section key={year} className="archive-year">
+                <h2 className="site-section-title">{year}</h2>
+                <ul>
                   {yearEntries.map((entry) => (
-                    <li key={entry.id} className="flex flex-wrap items-baseline gap-x-3">
+                    <li key={entry.id}>
                       {entry.publishedAt ? (
-                        <time
-                          dateTime={entry.publishedAt.toISOString()}
-                          className="post-meta tabular-nums"
-                        >
-                          {entry.publishedAt.toLocaleDateString('de-DE', {
-                            day: '2-digit',
-                            month: '2-digit',
-                          })}
+                        <time dateTime={entry.publishedAt.toISOString()}>
+                          {dayFormat.format(entry.publishedAt)}
                         </time>
-                      ) : null}
+                      ) : (
+                        <span aria-hidden />
+                      )}
                       <Link href={`/beitrag/${entry.slug}`}>{entry.title}</Link>
                     </li>
                   ))}

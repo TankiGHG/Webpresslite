@@ -33,16 +33,17 @@ export default async function CategoryArchivePage({ params }: { params: Params }
   const posts = await listPostsInCategory(siteId, category.id);
 
   return (
-    <div className="space-y-6">
+    <div>
       <header className="post-header">
+        <p className="post-meta">Kategorie</p>
         <h1 data-testid="archive-title">{category.name}</h1>
-        {category.description ? <p className="post-meta">{category.description}</p> : null}
+        {category.description ? <p className="post-lead">{category.description}</p> : null}
       </header>
 
       {posts.length === 0 ? (
-        <p className="post-meta" data-testid="empty-archive">
-          In dieser Kategorie ist noch nichts veröffentlicht.
-        </p>
+        <div className="site-empty" data-testid="empty-archive">
+          <p>In dieser Kategorie ist noch nichts veröffentlicht.</p>
+        </div>
       ) : (
         <PostList posts={posts} />
       )}

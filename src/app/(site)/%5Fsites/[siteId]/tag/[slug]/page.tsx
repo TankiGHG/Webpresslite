@@ -1,7 +1,12 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { PostList } from '@/components/site/post-list';
-import { getPublicSite, getTagBySlug, listPostsWithTag } from '@/lib/db/queries/public-sites';
+import {
+  getPublicSite,
+  getTagBySlug,
+  listPostsWithTag,
+  listPublicCategories,
+} from '@/lib/db/queries/public-sites';
 
 type Params = Promise<{ siteId: string; slug: string }>;
 
@@ -20,20 +25,25 @@ export default async function TagArchivePage({ params }: { params: Params }) {
 
   if (!tag) notFound();
 
-  const posts = await listPostsWithTag(siteId, tag.id);
+  const [posts, categories] = await Promise.all([
+    listPostsWithTag(siteId, tag.id),
+    listPublicCategories(siteId),
+  ]);
+  const categoryById = new Map(categories.map((category) => [category.id, category]));
 
   return (
-    <div className="space-y-6">
+    <div>
       <header className="post-header">
-        <h1 data-testid="archive-title">Tag: {tag.name}</h1>
+        <p className="post-meta">Tag</p>
+        <h1 data-testid="archive-title">#{tag.name}</h1>
       </header>
 
       {posts.length === 0 ? (
-        <p className="post-meta" data-testid="empty-archive">
-          Mit diesem Tag ist noch nichts veröffentlicht.
-        </p>
+        <div className="site-empty" data-testid="empty-archive">
+          <p>Mit diesem Tag ist noch nichts veröffentlicht.</p>
+        </div>
       ) : (
-        <PostList posts={posts} />
+        <PostList posts={posts} categories={categoryById} />
       )}
     </div>
   );

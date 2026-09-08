@@ -5,8 +5,7 @@ import {
   listPublicCategories,
   POSTS_PER_PAGE,
 } from '@/lib/db/queries/public-sites';
-import { getEnv } from '@/lib/env';
-import { siteUrl } from '@/lib/tenant/host';
+import { publicSiteUrl } from '@/lib/tenant/public-url';
 
 function xml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -18,7 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ sit
 
   if (!site) return new Response('Not found', { status: 404 });
 
-  const base = siteUrl(site.subdomain, getEnv().ROOT_DOMAIN);
+  const base = publicSiteUrl(site);
   const entries = await listAllPublished(siteId);
   const total = await countPublishedPosts(siteId);
   const pageCount = Math.max(1, Math.ceil(total / POSTS_PER_PAGE));

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { CommentForm } from '@/components/comments/comment-form';
 import { RenderedContent } from '@/components/editor/rendered-content';
 import { after } from 'next/server';
+import { deriveExcerpt } from '@/lib/editor/render';
 import { listApprovedComments } from '@/lib/db/queries/comments';
 import { recordView } from '@/lib/db/queries/stats';
 import {
@@ -12,10 +13,15 @@ import {
   getPublicSite,
   getPublishedPost,
 } from '@/lib/db/queries/public-sites';
-import { getEnv } from '@/lib/env';
-import { siteUrl } from '@/lib/tenant/host';
+import { publicSiteUrl } from '@/lib/tenant/public-url';
 
 type Params = Promise<{ siteId: string; slug: string }>;
+
+const dateFormat = new Intl.DateTimeFormat('de-DE', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { siteId, slug } = await params;
@@ -23,11 +29,14 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
   if (!site || !post) return { title: 'Nicht gefunden', robots: { index: false } };
 
-  const base = siteUrl(site.subdomain, getEnv().ROOT_DOMAIN);
+  const base = publicSiteUrl(site);
   const url = `${base}/beitrag/${post.slug}`;
   const title = post.seoTitle ?? post.title;
   const description = post.seoDescription ?? post.excerpt ?? undefined;
-  const image = `${base}/og/beitrag/${post.slug}`;
+  // A real cover beats the generated card; social previews look like the post.
+  const image = post.cover
+    ? { url: post.cover.urls.full, alt: post.cover.alt ?? post.title }
+    : { url: `${base}/og/beitrag/${post.slug}`, width: 1200, height: 630, alt: post.title };
 
   return {
     title,
@@ -43,9 +52,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
       locale: 'de_DE',
       publishedTime: post.publishedAt?.toISOString(),
       modifiedTime: post.updatedAt.toISOString(),
-      images: [{ url: image, width: 1200, height: 630, alt: post.title }],
+      images: [image],
     },
-    twitter: { card: 'summary_large_image', title, description, images: [image] },
+    twitter: { card: 'summary_large_image', title, description, images: [image.url] },
   };
 }
 
@@ -55,7 +64,7 @@ export default async function PublicPostPage({ params }: { params: Params }) {
 
   if (!site || !post) notFound();
 
-  const base = siteUrl(site.subdomain, getEnv().ROOT_DOMAIN);
+  const base = publicSiteUrl(site);
 
   const [category, tagsByPost, comments] = await Promise.all([
     getPostCategory(siteId, post.categoryId),
@@ -75,6 +84,7 @@ export default async function PublicPostPage({ params }: { params: Params }) {
     '@type': 'BlogPosting',
     headline: post.title,
     description: post.seoDescription ?? post.excerpt ?? undefined,
+    image: post.cover?.urls.full,
     datePublished: post.publishedAt?.toISOString(),
     dateModified: post.updatedAt.toISOString(),
     mainEntityOfPage: `${base}/beitrag/${post.slug}`,
@@ -90,19 +100,47 @@ export default async function PublicPostPage({ params }: { params: Params }) {
       />
 
       <header className="post-header">
-        <h1 data-testid="post-title">{post.title}</h1>
-        {post.publishedAt ? (
-          <p className="post-meta">
+        <p className="post-meta">
+          {category ? (
+            <Link href={`/kategorie/${category.slug}`} className="post-category">
+              {category.name}
+            </Link>
+          ) : null}
+          {category && post.publishedAt ? <span className="dot" aria-hidden /> : null}
+          {post.publishedAt ? (
             <time dateTime={post.publishedAt.toISOString()}>
-              {post.publishedAt.toLocaleDateString('de-DE', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              {dateFormat.format(post.publishedAt)}
             </time>
-          </p>
+          ) : null}
+          <span className="dot" aria-hidden />
+          <span>{post.readingMinutes} Min. Lesezeit</span>
+        </p>
+        <h1 data-testid="post-title">{post.title}</h1>
+        {/* A derived excerpt is just the opening lines again; only a
+            hand-written one earns the lead position. */}
+        {post.excerpt && post.excerpt !== deriveExcerpt(post.contentJson) ? (
+          <p className="post-lead">{post.excerpt}</p>
         ) : null}
       </header>
+
+      {post.cover ? (
+        <figure className="post-cover">
+          {/* Variants from our own storage with known dimensions. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={post.cover.urls.full}
+            srcSet={post.cover.srcset}
+            sizes="(max-width: 48rem) 100vw, 44rem"
+            alt={post.cover.alt ?? ''}
+            width={post.cover.width ?? undefined}
+            height={post.cover.height ?? undefined}
+            fetchPriority="high"
+          />
+          {post.cover.alt ? (
+            <figcaption className="post-cover-caption">{post.cover.alt}</figcaption>
+          ) : null}
+        </figure>
+      ) : null}
 
       <RenderedContent html={post.contentHtml} />
 

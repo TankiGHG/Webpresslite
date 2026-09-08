@@ -1,9 +1,10 @@
+import { Search } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { ReactNode } from 'react';
-import { getPublicSite } from '@/lib/db/queries/public-sites';
+import type { CSSProperties, ReactNode } from 'react';
+import { getPublicSite, listAllPublished } from '@/lib/db/queries/public-sites';
+import { getEnv } from '@/lib/env';
 import { parseThemeSettings, themeStyle } from '@/lib/themes/settings';
-import type { CSSProperties } from 'react';
 
 export default async function SiteLayout({
   children,
@@ -13,12 +14,15 @@ export default async function SiteLayout({
   params: Promise<{ siteId: string }>;
 }) {
   const { siteId } = await params;
-  const site = await getPublicSite(siteId);
+  const [site, published] = await Promise.all([getPublicSite(siteId), listAllPublished(siteId)]);
 
   if (!site) notFound();
 
   const settings = parseThemeSettings(site.themeSettings);
   const style = themeStyle(site.theme, settings) as CSSProperties;
+  // Pages double as the menu; the newest four keep the header tidy.
+  const pages = published.filter((entry) => entry.type === 'page').slice(0, 4);
+  const year = new Date().getFullYear();
 
   return (
     <div className="site-root" data-theme={site.theme} style={style}>
@@ -46,8 +50,16 @@ export default async function SiteLayout({
 
           <nav aria-label="Hauptnavigation" className="site-nav">
             <Link href="/">Start</Link>
+            {pages.map((page) => (
+              <Link key={page.id} href={`/${page.slug}`}>
+                {page.title}
+              </Link>
+            ))}
             <Link href="/archiv">Archiv</Link>
-            <Link href="/suche">Suche</Link>
+            <Link href="/suche" className="site-search-link" aria-label="Suche">
+              <Search aria-hidden />
+              <span className="sr-only sm:not-sr-only">Suche</span>
+            </Link>
           </nav>
         </div>
       </header>
@@ -59,7 +71,18 @@ export default async function SiteLayout({
       <footer className="site-footer">
         <div className="site-container">
           <p>
-            {site.name} · <Link href="/feed.xml">RSS</Link>
+            © {year} {site.name}
+          </p>
+          <nav className="site-footer-links" aria-label="Fußzeile">
+            <Link href="/archiv">Archiv</Link>
+            <Link href="/feed.xml">RSS</Link>
+            <Link href="/suche">Suche</Link>
+          </nav>
+          <p className="site-powered">
+            Erstellt mit{' '}
+            <a href={getEnv().APP_URL} rel="noopener">
+              webpresslite
+            </a>
           </p>
         </div>
       </footer>

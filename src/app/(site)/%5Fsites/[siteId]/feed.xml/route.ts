@@ -1,6 +1,5 @@
 import { getPublicSite, listAllPublished } from '@/lib/db/queries/public-sites';
-import { getEnv } from '@/lib/env';
-import { siteUrl } from '@/lib/tenant/host';
+import { publicSiteUrl } from '@/lib/tenant/public-url';
 
 /** Escapes the five characters that are not legal as XML character data. */
 function xml(value: string): string {
@@ -18,7 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ sit
 
   if (!site) return new Response('Not found', { status: 404 });
 
-  const base = siteUrl(site.subdomain, getEnv().ROOT_DOMAIN);
+  const base = publicSiteUrl(site);
   const entries = (await listAllPublished(siteId)).filter((entry) => entry.type === 'post');
   const updated = entries[0]?.publishedAt ?? new Date();
 

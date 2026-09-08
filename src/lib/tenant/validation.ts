@@ -26,6 +26,18 @@ export const siteNameSchema = z
   .min(2, 'Bitte gib einen Namen mit mindestens 2 Zeichen ein.')
   .max(80, 'Höchstens 80 Zeichen.');
 
+export const siteDescriptionSchema = z
+  .string()
+  .trim()
+  .max(160, 'Höchstens 160 Zeichen.')
+  .transform((value) => (value === '' ? null : value));
+
+export const updateSiteSettingsSchema = z.object({
+  siteId: z.string().min(1),
+  name: siteNameSchema,
+  description: siteDescriptionSchema,
+});
+
 export const createSiteSchema = z.object({
   name: siteNameSchema,
   subdomain: subdomainSchema,

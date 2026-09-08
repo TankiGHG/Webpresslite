@@ -129,6 +129,8 @@ export const sites = pgTable(
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
+    /** Short tagline shown under the name on the public site and in search results. */
+    description: text('description'),
     subdomain: text('subdomain').notNull(),
     customDomain: text('custom_domain'),
     /** Random value the owner publishes as a TXT record to prove ownership. */

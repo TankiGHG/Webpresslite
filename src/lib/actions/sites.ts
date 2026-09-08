@@ -1,22 +1,29 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireSession } from '@/lib/auth/session';
+import { siteTag } from '@/lib/db/queries/public-sites';
 import {
   createSite,
   deleteSite,
   isSubdomainAvailable,
   SiteAccessError,
   SubdomainTakenError,
+  updateSiteSettings,
 } from '@/lib/db/queries/sites';
 import { invalidateHostCache } from '@/lib/tenant/resolve';
-import { createSiteSchema, subdomainSchema } from '@/lib/tenant/validation';
+import {
+  createSiteSchema,
+  subdomainSchema,
+  updateSiteSettingsSchema,
+} from '@/lib/tenant/validation';
 import { fieldErrors } from '@/lib/auth/validation';
 
 export interface ActionState {
   errors?: Record<string, string>;
   formError?: string;
+  saved?: boolean;
 }
 
 export async function createSiteAction(
@@ -79,6 +86,40 @@ export async function deleteSiteAction(
   invalidateHostCache();
   revalidatePath('/dashboard');
   redirect('/dashboard');
+}
+
+export async function updateSiteSettingsAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const { user } = await requireSession('/dashboard');
+
+  const parsed = updateSiteSettingsSchema.safeParse({
+    siteId: formData.get('siteId'),
+    name: formData.get('name'),
+    description: formData.get('description') ?? '',
+  });
+
+  if (!parsed.success) {
+    return { errors: fieldErrors(parsed.error) };
+  }
+
+  try {
+    await updateSiteSettings({ ...parsed.data, userId: user.id });
+  } catch (error) {
+    if (error instanceof SiteAccessError) {
+      return {
+        formError: 'Zum Ändern der Einstellungen brauchst du mindestens die Rolle Administration.',
+      };
+    }
+    throw error;
+  }
+
+  // The public header shows name and tagline, and the sidebar shows the name.
+  revalidateTag(siteTag(parsed.data.siteId));
+  revalidatePath(`/sites/${parsed.data.siteId}`, 'layout');
+
+  return { saved: true };
 }
 
 /** Live availability check for the create form. */

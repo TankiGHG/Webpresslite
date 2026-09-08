@@ -219,6 +219,28 @@ export async function updateSiteTheme(input: UpdateSiteThemeInput): Promise<Site
   return site;
 }
 
+export interface UpdateSiteSettingsInput {
+  siteId: string;
+  userId: string;
+  name: string;
+  description: string | null;
+}
+
+/** Name and tagline. Needs `site:settings`, which admins and owners hold. */
+export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promise<SiteRow> {
+  await requireCapability(input.siteId, input.userId, 'site:settings');
+
+  const updated = await getDb()
+    .update(sites)
+    .set({ name: input.name, description: input.description })
+    .where(eq(sites.id, input.siteId))
+    .returning();
+
+  const site = updated[0];
+  if (!site) throw new SiteAccessError();
+  return site;
+}
+
 export class DomainError extends Error {
   constructor(message: string) {
     super(message);

@@ -144,7 +144,14 @@ function toListItem<T extends ListRow>(
  */
 export type PublicSite = Pick<
   SiteRow,
-  'id' | 'name' | 'description' | 'subdomain' | 'customDomain' | 'theme' | 'themeSettings'
+  | 'id'
+  | 'name'
+  | 'description'
+  | 'subdomain'
+  | 'customDomain'
+  | 'theme'
+  | 'themeSettings'
+  | 'commentsEnabled'
 >;
 
 /**
@@ -168,6 +175,7 @@ async function loadPublicSite(siteId: string): Promise<PublicSite | null> {
       customDomain: sites.customDomain,
       theme: sites.theme,
       themeSettings: sites.themeSettings,
+      commentsEnabled: sites.commentsEnabled,
     })
     .from(sites)
     .where(eq(sites.id, siteId))

@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireSession } from '@/lib/auth/session';
-import { siteTag } from '@/lib/db/queries/public-sites';
+import { siteContentTag, siteTag } from '@/lib/db/queries/public-sites';
 import {
   createSite,
   deleteSite,
@@ -98,6 +98,8 @@ export async function updateSiteSettingsAction(
     siteId: formData.get('siteId'),
     name: formData.get('name'),
     description: formData.get('description') ?? '',
+    // A checkbox that is off sends nothing, which is exactly what off means.
+    commentsEnabled: formData.get('commentsEnabled') === 'on',
   });
 
   if (!parsed.success) {
@@ -117,6 +119,8 @@ export async function updateSiteSettingsAction(
 
   // The public header shows name and tagline, and the sidebar shows the name.
   revalidateTag(siteTag(parsed.data.siteId));
+  // Whether a post shows a comment form is part of the rendered page.
+  revalidateTag(siteContentTag(parsed.data.siteId));
   revalidatePath(`/sites/${parsed.data.siteId}`, 'layout');
 
   return { saved: true };

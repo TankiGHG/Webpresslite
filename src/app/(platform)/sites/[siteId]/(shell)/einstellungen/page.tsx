@@ -26,7 +26,7 @@ export default async function SiteSettingsPage({
     <div className="max-w-3xl space-y-6">
       <PageHeader
         title="Einstellungen"
-        description="Name und Untertitel deiner Site. Adresse und Domain verwaltest du unter „Domain“."
+        description="Name, Untertitel und Kommentare. Adresse und Domain verwaltest du unter „Domain“."
       />
 
       <Card>
@@ -41,7 +41,12 @@ export default async function SiteSettingsPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <SiteSettingsForm siteId={site.id} name={site.name} description={site.description} />
+          <SiteSettingsForm
+            siteId={site.id}
+            name={site.name}
+            description={site.description}
+            commentsEnabled={site.commentsEnabled}
+          />
         </CardContent>
       </Card>
 

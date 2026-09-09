@@ -1098,6 +1098,11 @@
     white-space: pre-wrap;
   }
 
+  .comment-closed {
+    color: var(--site-muted-foreground);
+    font-size: 0.9375rem;
+  }
+
   .comment-form {
     display: flex;
     flex-direction: column;

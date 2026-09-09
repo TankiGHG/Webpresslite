@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { requireSession } from '@/lib/auth/session';
 import { logger } from '@/lib/logger';
 import { fieldErrors } from '@/lib/auth/validation';
+import { COMMENT_MODES, commentOverride } from '@/lib/comments/constants';
 import {
   CoverNotFoundError,
   createPost,
@@ -149,6 +150,7 @@ const settingsSchema = z.object({
   excerpt: z.string().trim().max(300, 'Höchstens 300 Zeichen.'),
   seoTitle: z.string().trim().max(70, 'Höchstens 70 Zeichen.'),
   seoDescription: z.string().trim().max(160, 'Höchstens 160 Zeichen.'),
+  comments: z.enum(COMMENT_MODES),
 });
 
 export async function savePostSettingsAction(
@@ -164,6 +166,7 @@ export async function savePostSettingsAction(
     excerpt: formData.get('excerpt') ?? '',
     seoTitle: formData.get('seoTitle') ?? '',
     seoDescription: formData.get('seoDescription') ?? '',
+    comments: formData.get('comments') ?? 'inherit',
   });
 
   if (!parsed.success) return { errors: fieldErrors(parsed.error) };
@@ -177,6 +180,7 @@ export async function savePostSettingsAction(
       excerpt: parsed.data.excerpt || null,
       seoTitle: parsed.data.seoTitle || null,
       seoDescription: parsed.data.seoDescription || null,
+      commentsEnabled: commentOverride(parsed.data.comments),
     });
   } catch (error) {
     if (error instanceof SiteAccessError) return { formError: 'Kein Zugriff auf diese Site.' };

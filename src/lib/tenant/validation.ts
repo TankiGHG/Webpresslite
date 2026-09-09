@@ -36,6 +36,7 @@ export const updateSiteSettingsSchema = z.object({
   siteId: z.string().min(1),
   name: siteNameSchema,
   description: siteDescriptionSchema,
+  commentsEnabled: z.boolean(),
 });
 
 export const createSiteSchema = z.object({

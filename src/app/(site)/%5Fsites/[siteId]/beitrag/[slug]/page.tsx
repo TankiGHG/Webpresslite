@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { CommentForm } from '@/components/comments/comment-form';
 import { RenderedContent } from '@/components/editor/rendered-content';
 import { after } from 'next/server';
+import { commentsOpen } from '@/lib/comments/constants';
 import { deriveExcerpt } from '@/lib/editor/render';
 import { listApprovedComments } from '@/lib/db/queries/comments';
 import { recordView } from '@/lib/db/queries/stats';
@@ -72,6 +73,10 @@ export default async function PublicPostPage({ params }: { params: Params }) {
     listApprovedComments(post.id),
   ]);
   const postTags = tagsByPost.get(post.id) ?? [];
+  const open = commentsOpen({
+    siteEnabled: site.commentsEnabled,
+    postOverride: post.commentsEnabled,
+  });
 
   // Counted after the response is sent, so a slow write never delays a reader.
   after(async () => {
@@ -155,32 +160,42 @@ export default async function PublicPostPage({ params }: { params: Params }) {
         </nav>
       ) : null}
 
-      <section className="comment-section" data-testid="comments">
-        <h2>
-          {comments.length === 0
-            ? 'Kommentare'
-            : `${comments.length} ${comments.length === 1 ? 'Kommentar' : 'Kommentare'}`}
-        </h2>
+      {/* With comments closed and none approved there is nothing to say, so the
+          section disappears rather than announcing its own absence. */}
+      {open || comments.length > 0 ? (
+        <section className="comment-section" data-testid="comments">
+          <h2>
+            {comments.length === 0
+              ? 'Kommentare'
+              : `${comments.length} ${comments.length === 1 ? 'Kommentar' : 'Kommentare'}`}
+          </h2>
 
-        {comments.length > 0 ? (
-          <ul className="comment-list" data-testid="comment-list">
-            {comments.map((comment) => (
-              <li key={comment.id} className="comment-item">
-                <header>
-                  <strong>{comment.authorName}</strong>
-                  <time dateTime={comment.createdAt.toISOString()}>
-                    {comment.createdAt.toLocaleDateString('de-DE')}
-                  </time>
-                </header>
-                {/* Plain text, rendered as text — a comment never contains markup. */}
-                <p>{comment.body}</p>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+          {comments.length > 0 ? (
+            <ul className="comment-list" data-testid="comment-list">
+              {comments.map((comment) => (
+                <li key={comment.id} className="comment-item">
+                  <header>
+                    <strong>{comment.authorName}</strong>
+                    <time dateTime={comment.createdAt.toISOString()}>
+                      {comment.createdAt.toLocaleDateString('de-DE')}
+                    </time>
+                  </header>
+                  {/* Plain text, rendered as text — a comment never contains markup. */}
+                  <p>{comment.body}</p>
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
-        <CommentForm siteId={siteId} postSlug={post.slug} />
-      </section>
+          {open ? (
+            <CommentForm siteId={siteId} postSlug={post.slug} />
+          ) : (
+            <p className="comment-closed" data-testid="comments-closed">
+              Für diesen Beitrag sind die Kommentare geschlossen.
+            </p>
+          )}
+        </section>
+      ) : null}
     </article>
   );
 }

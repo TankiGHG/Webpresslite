@@ -161,6 +161,8 @@ export interface UpdatePostInput {
   seoDescription?: string | null;
   /** `null` removes the cover; the image must belong to the same site. */
   coverMediaId?: string | null;
+  /** `null` follows the site's comment setting; a boolean overrides it. */
+  commentsEnabled?: boolean | null;
 }
 
 export class CoverNotFoundError extends Error {
@@ -186,6 +188,7 @@ export async function updatePost(input: UpdatePostInput): Promise<PostRow> {
   if (input.title !== undefined) values.title = input.title;
   if (input.seoTitle !== undefined) values.seoTitle = input.seoTitle;
   if (input.seoDescription !== undefined) values.seoDescription = input.seoDescription;
+  if (input.commentsEnabled !== undefined) values.commentsEnabled = input.commentsEnabled;
 
   if (input.slug !== undefined) {
     values.slug = await uniqueSlug(

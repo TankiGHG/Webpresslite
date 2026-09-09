@@ -8,6 +8,7 @@ import { PostSettingsForm } from '@/components/editor/post-settings-form';
 import { PublishPanel } from '@/components/editor/publish-panel';
 import { PostTaxonomyForm } from '@/components/taxonomies/post-taxonomy-form';
 import { requireSession } from '@/lib/auth/session';
+import { commentMode } from '@/lib/comments/constants';
 import { getMedia } from '@/lib/db/queries/media';
 import { getPost } from '@/lib/db/queries/posts';
 import { getSiteForUser } from '@/lib/db/queries/sites';
@@ -82,7 +83,11 @@ export default async function EditPostPage({
             </PanelSection>
           ) : null}
 
-          <PanelSection title="Adresse & SEO" defaultOpen={false}>
+          <PanelSection
+            title="Einstellungen"
+            description="Adresse, SEO und Kommentare"
+            defaultOpen={false}
+          >
             <PostSettingsForm
               siteId={siteId}
               postId={post.id}
@@ -91,6 +96,8 @@ export default async function EditPostPage({
               excerpt={post.excerpt ?? ''}
               seoTitle={post.seoTitle ?? ''}
               seoDescription={post.seoDescription ?? ''}
+              comments={commentMode(post.commentsEnabled)}
+              siteCommentsEnabled={site.commentsEnabled}
             />
           </PanelSection>
 

@@ -8,6 +8,7 @@ import { COMMENT_STATUSES, HONEYPOT_FIELD } from '@/lib/comments/constants';
 import { commentSchema, looksLikeSpam } from '@/lib/comments/validation';
 import {
   CommentNotFoundError,
+  CommentsClosedError,
   countRecentByIp,
   deleteComment,
   hashIp,
@@ -90,6 +91,9 @@ export async function submitCommentAction(
       await markAsSpam(siteId, comment.id);
     }
   } catch (error) {
+    if (error instanceof CommentsClosedError) {
+      return { formError: 'Für diesen Beitrag sind Kommentare geschlossen.' };
+    }
     if (error instanceof CommentNotFoundError) return { formError: 'Beitrag nicht gefunden.' };
     throw error;
   }

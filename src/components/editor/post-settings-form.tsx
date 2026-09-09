@@ -6,7 +6,9 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { savePostSettingsAction, type ActionState } from '@/lib/actions/posts';
+import { COMMENT_MODES, COMMENT_MODE_LABELS, type CommentMode } from '@/lib/comments/constants';
 
 export function PostSettingsForm({
   siteId,
@@ -16,6 +18,8 @@ export function PostSettingsForm({
   excerpt,
   seoTitle,
   seoDescription,
+  comments,
+  siteCommentsEnabled,
 }: {
   siteId: string;
   postId: string;
@@ -25,6 +29,9 @@ export function PostSettingsForm({
   excerpt: string;
   seoTitle: string;
   seoDescription: string;
+  comments: CommentMode;
+  /** What „Wie die Site" currently means, so the author can see it. */
+  siteCommentsEnabled: boolean;
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     savePostSettingsAction,
@@ -92,6 +99,18 @@ export function PostSettingsForm({
         error={state.errors?.seoDescription}
         disabled={pending}
       />
+
+      <div className="space-y-1.5">
+        <Label htmlFor="comments">Kommentare</Label>
+        <Select id="comments" name="comments" defaultValue={comments} disabled={pending}>
+          {COMMENT_MODES.map((mode) => (
+            <option key={mode} value={mode}>
+              {COMMENT_MODE_LABELS[mode]}
+              {mode === 'inherit' ? ` (${siteCommentsEnabled ? 'an' : 'aus'})` : ''}
+            </option>
+          ))}
+        </Select>
+      </div>
 
       <Button type="submit" size="sm" variant="outline" loading={pending}>
         {pending ? 'Wird gespeichert…' : 'Einstellungen speichern'}

@@ -224,15 +224,20 @@ export interface UpdateSiteSettingsInput {
   userId: string;
   name: string;
   description: string | null;
+  commentsEnabled: boolean;
 }
 
-/** Name and tagline. Needs `site:settings`, which admins and owners hold. */
+/** Name, tagline and comments. Needs `site:settings`, held by admins and owners. */
 export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promise<SiteRow> {
   await requireCapability(input.siteId, input.userId, 'site:settings');
 
   const updated = await getDb()
     .update(sites)
-    .set({ name: input.name, description: input.description })
+    .set({
+      name: input.name,
+      description: input.description,
+      commentsEnabled: input.commentsEnabled,
+    })
     .where(eq(sites.id, input.siteId))
     .returning();
 

@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { ModerationList } from '@/components/comments/moderation-list';
+import { Alert } from '@/components/ui/alert';
 import { PageHeader } from '@/components/ui/page-header';
 import { LinkTabs } from '@/components/ui/tabs';
 import { requireSession } from '@/lib/auth/session';
@@ -52,6 +54,19 @@ export default async function CommentsPage({
             : `${counts.pending} ${counts.pending === 1 ? 'Kommentar wartet' : 'Kommentare warten'} auf Freigabe.`
         }
       />
+
+      {/* Without this, an empty pending list looks like quiet readers rather
+          than a switch someone flipped. */}
+      {site.commentsEnabled ? null : (
+        <Alert className="mb-6" variant="info">
+          Kommentare sind für diese Site ausgeschaltet — es kommen keine neuen dazu. Einzelne
+          Beiträge können sie trotzdem erlauben. Umschalten unter{' '}
+          <Link href={`/sites/${siteId}/einstellungen`} className="underline">
+            Einstellungen
+          </Link>
+          .
+        </Alert>
+      )}
 
       <LinkTabs
         className="mb-6"

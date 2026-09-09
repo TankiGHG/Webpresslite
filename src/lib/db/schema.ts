@@ -141,6 +141,8 @@ export const sites = pgTable(
       .references(() => user.id, { onDelete: 'cascade' }),
     theme: text('theme').notNull().default(DEFAULT_THEME),
     themeSettings: jsonb('theme_settings').$type<ThemeSettings>().notNull().default({}),
+    /** Default for the whole site; a post may still decide for itself. */
+    commentsEnabled: boolean('comments_enabled').notNull().default(true),
     plan: sitePlan('plan').notNull().default('free'),
     ...timestamps,
   },
@@ -337,6 +339,8 @@ export const posts = pgTable(
     publishedAt: timestamp('published_at', { withTimezone: true, mode: 'date' }),
     seoTitle: text('seo_title'),
     seoDescription: text('seo_description'),
+    /** `null` follows the site setting; true or false overrides it. */
+    commentsEnabled: boolean('comments_enabled'),
     ...timestamps,
   },
   (table) => [

@@ -2,8 +2,8 @@ import 'server-only';
 import { createHash, randomBytes } from 'node:crypto';
 import { and, asc, count, desc, eq, gt, sql } from 'drizzle-orm';
 import { getDb } from '@/lib/db/client';
-import { comments, posts, type CommentRow } from '@/lib/db/schema';
-import type { CommentStatus } from '@/lib/comments/constants';
+import { comments, posts, sites, type CommentRow } from '@/lib/db/schema';
+import { commentsOpen, type CommentStatus } from '@/lib/comments/constants';
 import { requireCapability } from './sites';
 
 export class CommentNotFoundError extends Error {
@@ -17,6 +17,13 @@ export class CommentRejectedError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'CommentRejectedError';
+  }
+}
+
+export class CommentsClosedError extends Error {
+  constructor() {
+    super('Comments are closed for this post.');
+    this.name = 'CommentsClosedError';
   }
 }
 
@@ -97,8 +104,13 @@ export async function submitComment(input: SubmitCommentInput): Promise<CommentR
   // The post must exist, belong to this site, and actually be published —
   // otherwise a draft's slug would be a way to probe for unpublished content.
   const found = await getDb()
-    .select({ id: posts.id })
+    .select({
+      id: posts.id,
+      postOverride: posts.commentsEnabled,
+      siteEnabled: sites.commentsEnabled,
+    })
     .from(posts)
+    .innerJoin(sites, eq(sites.id, posts.siteId))
     .where(
       and(
         eq(posts.siteId, input.siteId),
@@ -110,6 +122,12 @@ export async function submitComment(input: SubmitCommentInput): Promise<CommentR
 
   const post = found[0];
   if (!post) throw new CommentNotFoundError();
+
+  // Hiding the form is presentation; this is the rule. A closed post takes no
+  // comment even from a client that kept the old page open.
+  if (!commentsOpen({ siteEnabled: post.siteEnabled, postOverride: post.postOverride })) {
+    throw new CommentsClosedError();
+  }
 
   const inserted = await getDb()
     .insert(comments)

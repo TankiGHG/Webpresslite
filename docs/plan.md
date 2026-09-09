@@ -126,8 +126,19 @@ responsiv ausgeliefert wird.
 - [x] Designsystem in `src/components/ui/` (Radix + Tailwind, Tokens in oklch, heller und dunkler Modus)
 - [x] Site-Shell mit Seitenleiste, Site-Wechsler und mobiler Navigation; Editor in voller Breite
 - [x] Landingpage, Auth-Seiten und Dashboard mit Leerzuständen und klaren nächsten Schritten
-- [x] Fünf Themes mit gerenderter Vorschau; Farbfelder zeigen die tatsächliche Theme-Farbe
+- [x] Themes mit gerenderter Vorschau; Farbfelder zeigen die tatsächliche Theme-Farbe
 - [x] Editor: serialisierter Autosave, Speichern vor Veröffentlichen/Planen/Verlassen, `Strg+S`
 - [x] Seiten als eigener Bereich, Site-Einstellungen mit Untertitel (Migration 0008)
 - [x] Öffentliche Seiten: Auszüge, Lesezeit, Archiv nach Jahr, Suche mit markierten Treffern
 - [x] Screenshot-Durchgang auf Desktop und Handy, E2E-Suite grün (ADR 0012)
+
+## Phase 10 — Vorlagen
+
+**Fertig wenn:** die Theme-Auswahl echte Entwürfe zeigt, nicht Farbvarianten desselben Layouts.
+
+- [x] Layout als Theme-Eigenschaft (`data-layout`), Markup für alle Themes gleich (ADR 0013)
+- [x] Getrennte Container- und Leseweite, damit breite Themes lesbare Artikel behalten
+- [x] **Atelier** — Karten-Raster mit Bild oben, für Portfolio und Fotografie
+- [x] **Neo** — harte Kanten, versetzte Schatten, versale Titel
+- [x] **Aurora** — dunkle Glaspaneele über einem zweifarbigen Verlauf aus dem Akzent
+- [x] Vorschau im Design-Bereich zeichnet das Layout mit

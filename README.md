@@ -169,13 +169,26 @@ Der Aufruf ist idempotent; ohne fällige Beiträge passiert nichts. Ohne gesetzt
 
 ## Themes
 
-Jede Site nutzt eines von fünf Themes — **Minimal**, **Journal**, **Editorial**,
-**Ozean**, **Kontrast** — und kann Akzentfarbe, Hintergrund, Textfarbe,
-Schriften und ein Logo überschreiben. Angepasst wird das unter
+Jede Site nutzt eines von acht Themes und kann Akzentfarbe, Hintergrund,
+Textfarbe, Schriften und ein Logo überschreiben. Angepasst wird das unter
 `Site → Design`; jedes Theme hat dort eine gerenderte Vorschau.
 
-Ein Theme ist ein Satz `--site-*`-CSS-Variablen. Wer im Site-Bereich eine Farbe
-fest notiert statt eine Variable zu verwenden, bricht die Umschaltung.
+| Theme         | Anordnung                             | Gedacht für                    |
+| ------------- | ------------------------------------- | ------------------------------ |
+| **Minimal**   | Liste                                 | ruhige Textblogs               |
+| **Journal**   | Liste                                 | lange Texte, Serifen           |
+| **Editorial** | Liste                                 | Magazin, Serifen-Titel         |
+| **Ozean**     | Liste                                 | ruhig, kühle Blautöne          |
+| **Kontrast**  | Liste                                 | dunkel, hoher Kontrast         |
+| **Atelier**   | Karten-Raster, Bild oben              | Portfolio, Fotografie          |
+| **Neo**       | Blöcke mit harten Kanten und Schatten | plakative, laute Seiten        |
+| **Aurora**    | Glaspaneele über Farbverlauf          | Technik- und Produktblogs      |
+
+Ein Theme ist ein Satz `--site-*`-CSS-Variablen plus ein Layout-Name. Das Layout
+steht als `data-layout` am Wurzelelement; das Markup ist für alle Themes gleich,
+die Anordnung macht allein CSS — siehe
+[ADR 0013](docs/adr/0013-theme-layouts.md). Wer im Site-Bereich eine Farbe fest
+notiert statt eine Variable zu verwenden, bricht die Umschaltung.
 
 Die Plattform selbst (Dashboard, Editor) hat davon unabhängig einen hellen und
 einen dunklen Modus; die Wahl liegt im Nutzermenü und folgt sonst dem System.

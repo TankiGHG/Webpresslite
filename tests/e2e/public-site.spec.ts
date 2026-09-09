@@ -123,6 +123,7 @@ test('switching the theme changes the public page', async ({ page }) => {
 
   await page.goto(base);
   await expect(page.locator('.site-root')).toHaveAttribute('data-theme', 'minimal');
+  await expect(page.locator('.site-root')).toHaveAttribute('data-layout', 'list');
 
   await page.goto(`/sites/${siteId}/design`);
   // The radio itself is visually hidden; a user clicks the label around it.
@@ -136,6 +137,21 @@ test('switching the theme changes the public page', async ({ page }) => {
   const root = page.locator('.site-root');
   await expect(root).toHaveAttribute('data-theme', 'contrast');
   await expect(root).toHaveAttribute('style', /--site-accent:\s*#ff8800/);
+});
+
+test('a theme with its own layout rearranges the post list', async ({ page }) => {
+  const { siteId, subdomain } = await siteWith(page, `Raster ${unique('')}`);
+  await publishPost(page, siteId, `Rasterbeitrag ${unique('')}`, 'Ein Beitrag im Raster.');
+
+  await page.goto(`/sites/${siteId}/design`);
+  await page.getByTestId('theme-option-atelier').click();
+  await page.getByRole('button', { name: 'Design speichern' }).click();
+  await expect(page.getByText('Design gespeichert.')).toBeVisible();
+
+  await page.goto(`http://${subdomain}.${ROOT_DOMAIN}`);
+  await expect(page.locator('.site-root')).toHaveAttribute('data-layout', 'grid');
+  // The layout is CSS only, so the proof is the computed value, not the markup.
+  await expect(page.getByTestId('published-list')).toHaveCSS('display', 'grid');
 });
 
 test('the theme form rejects an invalid colour', async ({ page }) => {

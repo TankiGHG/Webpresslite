@@ -4,15 +4,37 @@ import {
   FONT_STACKS,
   THEMES,
   THEME_IDS,
+  THEME_LAYOUTS,
   isThemeId,
   resolveTheme,
 } from '@/lib/themes/definitions';
 import { parseThemeSettings, themeSettingsSchema, themeStyle } from '@/lib/themes/settings';
 
 describe('theme definitions', () => {
-  it('defines the five built-in themes', () => {
-    expect(THEME_IDS).toHaveLength(5);
+  it('defines the eight built-in themes', () => {
+    expect(THEME_IDS).toHaveLength(8);
     for (const id of THEME_IDS) expect(THEMES[id].id).toBe(id);
+  });
+
+  it('gives every theme a known layout', () => {
+    for (const id of THEME_IDS) expect(THEME_LAYOUTS).toContain(THEMES[id].layout);
+  });
+
+  it('uses every layout at least once', () => {
+    const used = new Set(THEME_IDS.map((id) => THEMES[id].layout));
+    for (const layout of THEME_LAYOUTS) expect(used, layout).toContain(layout);
+  });
+
+  it('never lets an article grow wider than its container', () => {
+    for (const id of THEME_IDS) {
+      const { contentWidth, readingWidth } = THEMES[id].tokens;
+      // Comparing the numbers only holds while both are stated in rem.
+      expect(contentWidth, id).toMatch(/rem$/);
+      expect(readingWidth, id).toMatch(/rem$/);
+      expect(Number.parseFloat(readingWidth), id).toBeLessThanOrEqual(
+        Number.parseFloat(contentWidth),
+      );
+    }
   });
 
   it('gives every theme a complete token set', () => {
@@ -85,6 +107,14 @@ describe('themeStyle', () => {
 
     expect(style['--site-background']).toBe(THEMES.journal.tokens.background);
     expect(style['--site-body-font']).toBe(FONT_STACKS.serif);
+  });
+
+  it('emits both widths, which a wide theme keeps apart', () => {
+    const style = themeStyle('atelier', {});
+
+    expect(style['--site-content-width']).toBe(THEMES.atelier.tokens.contentWidth);
+    expect(style['--site-reading-width']).toBe(THEMES.atelier.tokens.readingWidth);
+    expect(style['--site-reading-width']).not.toBe(style['--site-content-width']);
   });
 
   it('lets overrides win', () => {

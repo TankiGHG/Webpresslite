@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { COMMENT_MAX_LENGTH, HONEYPOT_FIELD } from '@/lib/comments/constants';
+import {
+  COMMENT_MAX_LENGTH,
+  HONEYPOT_FIELD,
+  commentMode,
+  commentOverride,
+  commentsOpen,
+} from '@/lib/comments/constants';
 import { commentSchema, looksLikeSpam } from '@/lib/comments/validation';
 
 const valid = {
@@ -82,5 +88,32 @@ describe('looksLikeSpam', () => {
 describe('honeypot', () => {
   it('is named like a plausible field so bots fill it in', () => {
     expect(HONEYPOT_FIELD).toBe('website');
+  });
+});
+
+describe('commentsOpen', () => {
+  it('follows the site when the post has no opinion', () => {
+    expect(commentsOpen({ siteEnabled: true, postOverride: null })).toBe(true);
+    expect(commentsOpen({ siteEnabled: false, postOverride: null })).toBe(false);
+  });
+
+  it('lets the post override the site in both directions', () => {
+    expect(commentsOpen({ siteEnabled: false, postOverride: true })).toBe(true);
+    expect(commentsOpen({ siteEnabled: true, postOverride: false })).toBe(false);
+  });
+});
+
+describe('comment mode round trip', () => {
+  it.each([
+    ['inherit', null],
+    ['on', true],
+    ['off', false],
+  ] as const)('maps %s to %s and back', (mode, override) => {
+    expect(commentOverride(mode)).toBe(override);
+    expect(commentMode(override)).toBe(mode);
+  });
+
+  it('treats an absent value as inherit', () => {
+    expect(commentMode(undefined)).toBe('inherit');
   });
 });

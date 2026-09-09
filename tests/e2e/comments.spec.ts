@@ -169,3 +169,84 @@ test('the comment form rejects incomplete input', async ({ page, browser }) => {
 
   await visitorContext.close();
 });
+
+test('the site switch closes comments, and a post may still open its own', async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(180_000);
+  const { siteId, url } = await siteWithPost(page, `Schalter ${unique('')}`);
+
+  const visitorContext = await browser.newContext({ storageState: undefined });
+  const visitor = await visitorContext.newPage();
+  await visitor.goto(url);
+  await expect(visitor.getByTestId('comment-form')).toBeVisible();
+
+  // Off for the whole site.
+  await page.goto(`/sites/${siteId}/einstellungen`);
+  // The input is visually hidden behind its own label, so click the label.
+  await page.getByText('Kommentare erlauben').click();
+  await expect(page.getByTestId('site-comments-switch')).not.toBeChecked();
+  await page.getByRole('button', { name: 'Einstellungen speichern' }).click();
+  await expect(page.getByText('Einstellungen gespeichert.')).toBeVisible();
+
+  await visitor.reload();
+  await expect(visitor.getByTestId('comment-form')).toHaveCount(0);
+  // Nothing approved yet, so the section goes away entirely.
+  await expect(visitor.getByTestId('comments')).toHaveCount(0);
+
+  // The post overrides the site and opens again.
+  await page.goto(`/sites/${siteId}/posts`);
+  await page.getByRole('link', { name: 'Beitrag mit Kommentaren', exact: true }).click();
+  await page.waitForURL('**/posts/**');
+  await page.locator('summary', { hasText: 'Adresse, SEO und Kommentare' }).click();
+  await page.getByLabel('Kommentare').selectOption('on');
+  await page.getByRole('button', { name: 'Einstellungen speichern' }).click();
+
+  await expect(async () => {
+    await visitor.reload();
+    await expect(visitor.getByTestId('comment-form')).toBeVisible();
+  }).toPass({ timeout: 30_000 });
+
+  await visitorContext.close();
+});
+
+test('a closed post refuses a comment even when the form is forced back', async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(180_000);
+  const { siteId, url } = await siteWithPost(page, `Geschlossen ${unique('')}`);
+
+  const visitorContext = await browser.newContext({ storageState: undefined });
+  const visitor = await visitorContext.newPage();
+  // The visitor loads the page while comments are still open and keeps it.
+  await visitor.goto(url);
+  await expect(visitor.getByTestId('comment-form')).toBeVisible();
+
+  await page.goto(`/sites/${siteId}/posts`);
+  await page.getByRole('link', { name: 'Beitrag mit Kommentaren', exact: true }).click();
+  await page.waitForURL('**/posts/**');
+  await page.locator('summary', { hasText: 'Adresse, SEO und Kommentare' }).click();
+  await page.getByLabel('Kommentare').selectOption('off');
+  await page.getByRole('button', { name: 'Einstellungen speichern' }).click();
+  await expect(page.getByRole('button', { name: 'Einstellungen speichern' })).toBeEnabled();
+
+  // Submitting from the stale page must be refused by the server, not the form.
+  await visitor.getByLabel('Name').fill('Zu spaet');
+  await visitor
+    .getByLabel('E-Mail (wird nicht veröffentlicht)')
+    .fill(`${unique('spaet-')}@example.com`);
+  await visitor.getByLabel('Kommentar').fill('Geht das noch durch?');
+  await visitor.getByRole('button', { name: 'Kommentar absenden' }).click();
+
+  await expect(visitor.getByText(/Kommentare geschlossen/)).toBeVisible();
+  await expect(visitor.getByTestId('comment-submitted')).toHaveCount(0);
+
+  for (const status of ['pending', 'approved', 'spam']) {
+    await page.goto(`/sites/${siteId}/kommentare?status=${status}`);
+    await expect(page.getByTestId('no-comments'), status).toBeVisible();
+  }
+
+  await visitorContext.close();
+});

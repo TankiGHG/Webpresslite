@@ -142,3 +142,13 @@ responsiv ausgeliefert wird.
 - [x] **Neo** — harte Kanten, versetzte Schatten, versale Titel
 - [x] **Aurora** — dunkle Glaspaneele über einem zweifarbigen Verlauf aus dem Akzent
 - [x] Vorschau im Design-Bereich zeichnet das Layout mit
+
+## Phase 11 — Kommentare schaltbar
+
+**Fertig wenn:** wer keine Kommentare will, sie in einem Klick los ist — und der Server sich daran hält.
+
+- [x] Site-Schalter „Kommentare erlauben“ (Migration 0009), Vorgabe für alle Beiträge
+- [x] Je Beitrag `Wie die Site` / `An` / `Aus` im Editor
+- [x] Geschlossener Beitrag: kein Formular, und `submitComment` weist ab statt sich auf die UI zu verlassen
+- [x] Freigegebene Kommentare bleiben sichtbar; ohne Kommentare verschwindet der Abschnitt ganz
+- [x] Hinweis in der Moderation, wenn der Schalter aus ist

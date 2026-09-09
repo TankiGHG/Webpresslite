@@ -264,6 +264,22 @@ Spam-Schutz ohne Drittanbieter: ein Honeypot-Feld, ein Rate Limit von fünf
 Kommentaren je zehn Minuten und Adresse (nur gehasht gespeichert) sowie eine
 Heuristik, die offensichtlichen Spam direkt in die Spam-Queue schiebt.
 
+### An- und ausschalten
+
+Zwei Ebenen, wie in WordPress:
+
+| Wo                                                | Wirkung                                             |
+| ------------------------------------------------- | --------------------------------------------------- |
+| `Site → Einstellungen` → „Kommentare erlauben“     | Vorgabe für die ganze Site                          |
+| Editor → `Einstellungen` → „Kommentare“            | je Beitrag: `Wie die Site`, `An` oder `Aus`         |
+
+Der Beitrag entscheidet, wenn er eine Meinung hat, sonst die Site
+(`commentsOpen()` in `src/lib/comments/constants.ts`). Ist ein Beitrag
+geschlossen, verschwindet das Formular — **und** der Server weist eine trotzdem
+gesendete Antwort ab. Bereits freigegebene Kommentare bleiben sichtbar; sie
+waren schon öffentlich, und ein Schalter soll nichts verstecken, was schon
+gelesen wurde.
+
 ## Rollen und Team
 
 Jede Site hat vier Rollen. Die Matrix steht in `src/lib/sites/permissions.ts`

@@ -22,6 +22,9 @@ const CARDS: Record<ThemeId, { background: string; foreground: string; accent: s
   editorial: { background: '#fbfaf7', foreground: '#1f1a16', accent: '#c0392b' },
   ocean: { background: '#f4f8fb', foreground: '#1b2a3a', accent: '#1f6f8b' },
   contrast: { background: '#14161f', foreground: '#f5f6fa', accent: '#e8b931' },
+  atelier: { background: '#fdfcfa', foreground: '#2a2723', accent: '#0f6a53' },
+  neo: { background: '#f8f0dd', foreground: '#1a1a1a', accent: '#4f3ae0' },
+  aurora: { background: '#121324', foreground: '#f0f1f8', accent: '#c07de8' },
 };
 
 export async function GET(

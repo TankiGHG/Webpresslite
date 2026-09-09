@@ -78,5 +78,6 @@ export function themeStyle(
     '--site-body-font': FONT_STACKS[bodyFont],
     '--site-heading-font': FONT_STACKS[headingFont],
     '--site-content-width': tokens.contentWidth,
+    '--site-reading-width': tokens.readingWidth,
   };
 }

@@ -453,6 +453,13 @@
     padding-block: 3rem 5rem;
   }
 
+  /* Post and page bodies are the only `article` here. A wide theme keeps its
+     lists wide but its prose at a readable measure. */
+  .site-main > article {
+    max-width: var(--site-reading-width);
+    margin-inline: auto;
+  }
+
   .site-footer {
     border-top: 1px solid var(--site-border);
     padding-block: 2rem;
@@ -807,6 +814,231 @@
   .site-root :focus-visible {
     outline: 2px solid var(--site-accent);
     outline-offset: 2px;
+  }
+}
+
+/* --- Theme layouts ---------------------------------------------------------
+   A theme brings an arrangement, not just colours. Everything below keys on
+   `data-layout`, which the site layout sets from the theme — the markup is the
+   same for every theme, so switching one stays a pure CSS change and a new
+   theme can reuse a layout without touching a component.
+
+   These rules come after the defaults above and match them in specificity, so
+   source order is what makes them win. Keep them here, at the end. */
+@layer components {
+  /* Grid — cards in an auto-filling grid with the cover on top. The list puts
+     the cover last in the DOM (it is decorative), so the card is reversed
+     rather than reordered. */
+  [data-layout='grid'] .post-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+    gap: 1.75rem;
+    /* Cards keep their own height. Stretching them to the tallest in the row
+       would give a post without a cover a large empty box. */
+    align-items: start;
+  }
+
+  [data-layout='grid'] .post-list-item,
+  [data-layout='grid'] .post-list-item.has-cover {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+    /* The two-column rule for wide screens sets `align-items: start`, which in a
+       column flex box would shrink the cover to its intrinsic width. */
+    align-items: stretch;
+    gap: 1.125rem;
+    padding: 0 0 1.5rem;
+    border: 1px solid var(--site-border);
+    border-radius: 1rem;
+    overflow: hidden;
+    background: color-mix(in oklab, var(--site-muted) 40%, var(--site-background));
+    transition:
+      transform 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  [data-layout='grid'] .post-list-item:not(.has-cover) {
+    padding-top: 1.5rem;
+  }
+
+  [data-layout='grid'] .post-list-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 32px -20px color-mix(in oklab, var(--site-foreground) 70%, transparent);
+  }
+
+  [data-layout='grid'] .post-list-item > div {
+    padding-inline: 1.25rem;
+  }
+
+  [data-layout='grid'] .post-list-item h2 {
+    font-size: 1.25rem;
+  }
+
+  [data-layout='grid'] .post-cover-thumb {
+    aspect-ratio: 3 / 2;
+    border-radius: 0;
+  }
+
+  /* Block — neo-brutalist panels: hard outlines, offset shadow, no radius. */
+  [data-layout='block'] .site-header {
+    border-bottom-width: 3px;
+    background: var(--site-background);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  [data-layout='block'] .site-brand {
+    text-transform: uppercase;
+  }
+
+  [data-layout='block'] .site-nav a {
+    border-radius: 0;
+    font-weight: 600;
+  }
+
+  [data-layout='block'] .site-nav a:hover,
+  [data-layout='block'] .site-nav a[aria-current='page'] {
+    background: var(--site-accent);
+    color: var(--site-accent-foreground);
+  }
+
+  [data-layout='block'] .site-hero h1,
+  [data-layout='block'] .post-header h1 {
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+  }
+
+  [data-layout='block'] .post-list {
+    gap: 1.5rem;
+  }
+
+  [data-layout='block'] .post-list-item,
+  [data-layout='block'] .post-list-item.has-cover {
+    padding: 1.5rem;
+    border: 2px solid var(--site-border);
+    border-radius: 0;
+    background: var(--site-background);
+    box-shadow: 6px 6px 0 var(--site-border);
+    transition:
+      transform 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  [data-layout='block'] .post-list-item:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 8px 8px 0 var(--site-accent);
+  }
+
+  [data-layout='block'] .post-cover-thumb {
+    border: 2px solid var(--site-border);
+    border-radius: 0;
+  }
+
+  [data-layout='block'] .post-readmore {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  [data-layout='block'] .site-pagination a,
+  [data-layout='block'] .site-search-form input,
+  [data-layout='block'] .site-search-form button {
+    border-radius: 0;
+  }
+
+  [data-layout='block'] .site-pagination a {
+    border-width: 2px;
+    box-shadow: 4px 4px 0 var(--site-border);
+  }
+
+  [data-layout='block'] .site-hero {
+    border-bottom-width: 3px;
+  }
+
+  [data-layout='block'] .site-footer {
+    border-top-width: 3px;
+  }
+
+  /* Glass — a dark surface with a coloured wash and translucent panels. The
+     second glow is the accent turned a third of the way around the colour
+     wheel, so the wash has two hues whatever accent a site picks — the polar
+     lights this is named after are never one colour either.
+     `background-image` is a declaration of its own: a browser that rejects the
+     relative colour drops the gradients and keeps the flat background. */
+  .site-root[data-layout='glass'] {
+    background-image:
+      radial-gradient(
+        70rem 40rem at 2% 0%,
+        color-mix(in oklab, var(--site-accent) 55%, transparent),
+        transparent 62%
+      ),
+      radial-gradient(
+        62rem 34rem at 98% 6%,
+        oklch(from var(--site-accent) 0.62 0.14 calc(h - 120) / 0.5),
+        transparent 64%
+      );
+    background-repeat: no-repeat;
+  }
+
+  [data-layout='glass'] .site-header {
+    background: color-mix(in oklab, var(--site-background) 70%, transparent);
+    border-bottom-color: color-mix(in oklab, var(--site-border) 70%, transparent);
+  }
+
+  [data-layout='glass'] .post-list {
+    gap: 1.25rem;
+  }
+
+  [data-layout='glass'] .post-list-item,
+  [data-layout='glass'] .post-list-item.has-cover {
+    padding: 1.75rem;
+    border: 1px solid color-mix(in oklab, var(--site-border) 75%, transparent);
+    border-radius: 1.25rem;
+    background: color-mix(in oklab, var(--site-muted) 45%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transition:
+      border-color 160ms ease,
+      transform 160ms ease;
+  }
+
+  [data-layout='glass'] .post-list-item:hover {
+    border-color: color-mix(in oklab, var(--site-accent) 55%, transparent);
+    transform: translateY(-2px);
+  }
+
+  [data-layout='glass'] .post-cover-thumb {
+    border-radius: 0.75rem;
+  }
+
+  [data-layout='glass'] .site-pagination a {
+    background: color-mix(in oklab, var(--site-muted) 45%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  /* The title picks up the accent. Guarded, because without `background-clip`
+     the transparent colour would leave the heading invisible. */
+  @supports (background-clip: text) or (-webkit-background-clip: text) {
+    [data-layout='glass'] .site-hero h1 {
+      background-image: linear-gradient(100deg, var(--site-foreground) 25%, var(--site-accent) 95%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-layout='grid'] .post-list-item,
+    [data-layout='block'] .post-list-item,
+    [data-layout='glass'] .post-list-item {
+      transition: none;
+    }
+
+    [data-layout='grid'] .post-list-item:hover,
+    [data-layout='block'] .post-list-item:hover,
+    [data-layout='glass'] .post-list-item:hover {
+      transform: none;
+    }
   }
 }
 

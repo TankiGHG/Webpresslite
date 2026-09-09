@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import type { CSSProperties, ReactNode } from 'react';
 import { getPublicSite, listAllPublished } from '@/lib/db/queries/public-sites';
 import { getEnv } from '@/lib/env';
+import { resolveTheme } from '@/lib/themes/definitions';
 import { parseThemeSettings, themeStyle } from '@/lib/themes/settings';
 
 export default async function SiteLayout({
@@ -18,6 +19,7 @@ export default async function SiteLayout({
 
   if (!site) notFound();
 
+  const theme = resolveTheme(site.theme);
   const settings = parseThemeSettings(site.themeSettings);
   const style = themeStyle(site.theme, settings) as CSSProperties;
   // Pages double as the menu; the newest four keep the header tidy.
@@ -25,7 +27,7 @@ export default async function SiteLayout({
   const year = new Date().getFullYear();
 
   return (
-    <div className="site-root" data-theme={site.theme} style={style}>
+    <div className="site-root" data-theme={theme.id} data-layout={theme.layout} style={style}>
       <a href="#content" className="site-skip-link">
         Zum Inhalt springen
       </a>

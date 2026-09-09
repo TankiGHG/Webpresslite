@@ -1,10 +1,28 @@
 /**
- * Themes are pure CSS variable sets. Switching one changes no markup, which
- * keeps the public pages cacheable and means a site can change its look
- * without re-rendering stored content.
+ * Themes are CSS variable sets plus a layout name. Switching one changes no
+ * markup, which keeps the public pages cacheable and means a site can change
+ * its look without re-rendering stored content.
  */
-export const THEME_IDS = ['minimal', 'journal', 'editorial', 'ocean', 'contrast'] as const;
+export const THEME_IDS = [
+  'minimal',
+  'journal',
+  'editorial',
+  'ocean',
+  'contrast',
+  'atelier',
+  'neo',
+  'aurora',
+] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
+
+/**
+ * How a theme arranges and dresses the post list. The layout is an attribute on
+ * the site root, not a branch in a component: the list renders the same markup
+ * everywhere and CSS turns it into separated rows, a card grid, hard-edged
+ * blocks or translucent panels.
+ */
+export const THEME_LAYOUTS = ['list', 'grid', 'block', 'glass'] as const;
+export type ThemeLayout = (typeof THEME_LAYOUTS)[number];
 
 export const FONT_STACKS = {
   sans: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
@@ -31,13 +49,17 @@ export interface ThemeTokens {
   border: string;
   bodyFont: FontId;
   headingFont: FontId;
+  /** Width of the outer container — header, footer, lists. */
   contentWidth: string;
+  /** Width of an article's text. Wide layouts still need a readable measure. */
+  readingWidth: string;
 }
 
 export interface ThemeDefinition {
   id: ThemeId;
   name: string;
   description: string;
+  layout: ThemeLayout;
   tokens: ThemeTokens;
 }
 
@@ -51,6 +73,7 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
     id: 'minimal',
     name: 'Minimal',
     description: 'Ruhig, serifenlos, viel Weißraum.',
+    layout: 'list',
     tokens: {
       background: 'oklch(1 0 0)',
       foreground: 'oklch(0.21 0 0)',
@@ -62,12 +85,14 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
       bodyFont: 'sans',
       headingFont: 'sans',
       contentWidth: '44rem',
+      readingWidth: '44rem',
     },
   },
   journal: {
     id: 'journal',
     name: 'Journal',
     description: 'Serifen, warmer Papierton, für lange Texte.',
+    layout: 'list',
     tokens: {
       background: 'oklch(0.99 0.008 85)',
       foreground: 'oklch(0.24 0.015 60)',
@@ -79,12 +104,14 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
       bodyFont: 'serif',
       headingFont: 'serif',
       contentWidth: '40rem',
+      readingWidth: '40rem',
     },
   },
   editorial: {
     id: 'editorial',
     name: 'Editorial',
     description: 'Magazin-Look: Serifen-Titel, klarer Fließtext, roter Akzent.',
+    layout: 'list',
     tokens: {
       background: 'oklch(0.985 0.003 90)',
       foreground: 'oklch(0.18 0.01 50)',
@@ -96,12 +123,14 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
       bodyFont: 'sans',
       headingFont: 'serif',
       contentWidth: '46rem',
+      readingWidth: '46rem',
     },
   },
   ocean: {
     id: 'ocean',
     name: 'Ozean',
     description: 'Kühle Blautöne, weich und ruhig.',
+    layout: 'list',
     tokens: {
       background: 'oklch(0.98 0.01 220)',
       foreground: 'oklch(0.22 0.03 240)',
@@ -113,12 +142,14 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
       bodyFont: 'sans',
       headingFont: 'sans',
       contentWidth: '44rem',
+      readingWidth: '44rem',
     },
   },
   contrast: {
     id: 'contrast',
     name: 'Kontrast',
     description: 'Dunkel, hoher Kontrast, kräftige Überschriften.',
+    layout: 'list',
     tokens: {
       background: 'oklch(0.17 0.01 260)',
       foreground: 'oklch(0.97 0.005 260)',
@@ -130,6 +161,66 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
       bodyFont: 'sans',
       headingFont: 'sans',
       contentWidth: '44rem',
+      readingWidth: '44rem',
+    },
+  },
+  atelier: {
+    id: 'atelier',
+    name: 'Atelier',
+    description: 'Karten-Raster mit großen Bildern — für Portfolio und Fotografie.',
+    layout: 'grid',
+    tokens: {
+      background: 'oklch(0.99 0.003 100)',
+      foreground: 'oklch(0.2 0.008 80)',
+      muted: 'oklch(0.96 0.006 100)',
+      mutedForeground: 'oklch(0.47 0.012 80)',
+      accent: 'oklch(0.45 0.1 165)',
+      accentForeground: 'oklch(0.99 0 0)',
+      border: 'oklch(0.9 0.005 100)',
+      bodyFont: 'sans',
+      headingFont: 'sans',
+      // The grid needs room; the article inside it does not.
+      contentWidth: '72rem',
+      readingWidth: '42rem',
+    },
+  },
+  neo: {
+    id: 'neo',
+    name: 'Neo',
+    description: 'Kantig und plakativ: harte Kanten, versetzte Schatten, große Typo.',
+    layout: 'block',
+    tokens: {
+      background: 'oklch(0.96 0.025 95)',
+      foreground: 'oklch(0.16 0 0)',
+      muted: 'oklch(0.92 0.03 95)',
+      mutedForeground: 'oklch(0.38 0.01 90)',
+      accent: 'oklch(0.5 0.23 285)',
+      accentForeground: 'oklch(0.99 0 0)',
+      // Black outlines are the whole point here, so the border token carries them.
+      border: 'oklch(0.16 0 0)',
+      bodyFont: 'sans',
+      headingFont: 'sans',
+      contentWidth: '52rem',
+      readingWidth: '44rem',
+    },
+  },
+  aurora: {
+    id: 'aurora',
+    name: 'Aurora',
+    description: 'Dunkel mit Farbverlauf und Glaseffekt — modern und technisch.',
+    layout: 'glass',
+    tokens: {
+      background: 'oklch(0.16 0.02 275)',
+      foreground: 'oklch(0.96 0.01 275)',
+      muted: 'oklch(0.24 0.03 275)',
+      mutedForeground: 'oklch(0.76 0.02 275)',
+      accent: 'oklch(0.72 0.16 305)',
+      accentForeground: 'oklch(0.16 0.02 275)',
+      border: 'oklch(0.32 0.03 275)',
+      bodyFont: 'sans',
+      headingFont: 'sans',
+      contentWidth: '52rem',
+      readingWidth: '44rem',
     },
   },
 };
